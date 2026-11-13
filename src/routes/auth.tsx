@@ -155,21 +155,21 @@ function AuthPage() {
 
   return (
     <div className="flex min-h-screen w-full flex-col sm:mx-auto sm:max-w-md md:max-w-lg lg:max-w-6xl lg:flex-row lg:items-center lg:gap-12 lg:px-10">
-      <div className="relative h-[37vh] min-h-[250px] w-full overflow-hidden sm:h-[34vh] sm:min-h-[240px] lg:h-[80vh] lg:w-1/2 lg:rounded-[2rem]">
+      <div className="relative h-[60vh] min-h-[400px] w-full overflow-hidden sm:h-[52vh] sm:min-h-[360px] lg:h-[85vh] lg:w-1/2 lg:rounded-[2rem]">
         <motion.img
           src={loginCover}
           alt="Bac Bo Live"
           width={1254}
           height={1254}
-          className="absolute inset-0 h-full w-full object-cover object-[center_35%]"
+          className="absolute inset-0 h-full w-full object-cover object-[center_35%] blur-[3px]"
           initial={{ scale: 1.12 }}
-          animate={{ scale: 1 }}
+          animate={{ scale: 1.03 }}
           transition={{ duration: 1.6, ease: [0.22, 1, 0.36, 1] }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent via-60% to-background lg:hidden" />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/10 via-background/50 via-60% to-background lg:hidden" />
       </div>
 
-      <div className="relative -mt-16 flex w-full flex-1 flex-col px-6 pb-6 sm:-mt-4 sm:px-6 sm:pb-10 lg:mt-0 lg:max-w-md lg:py-10">
+      <div className="relative -mt-44 flex w-full flex-1 flex-col px-6 pb-6 sm:-mt-32 sm:px-6 sm:pb-10 lg:mt-0 lg:max-w-md lg:py-10">
         <AnimatePresence mode="wait">
           {notice ? (
             <NoticeCard
