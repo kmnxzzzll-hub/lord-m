@@ -28,3 +28,12 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+## Project rules
+- Account access is gated by `profiles.status` (pending/approved/rejected/blocked); only admins may change it (DB trigger), so never let client code bypass that check.
+- Roles live in `user_roles` with the `has_role` security-definer function; never store roles on profiles.
+- The signal engine is pure functions in `src/lib/bacbo-engine.ts`; the shared schedule in `src/lib/robot-schedule.ts` derives cycles and signals deterministically from `robot_settings.started_at`, so every client shows the same signal without a server job. `src/lib/robot-context.tsx` only wires settings, timers and session history.
+- Only admins switch the robot on/off (`robot_settings.running`, admin-only update policy); clients poll settings, so never start signals from client-side state alone.
+- Signal history is per login session in localStorage (keyed by user and `last_sign_in_at`, cleared on sign-out); the old `signals` table is deprecated.
+- Avatars live in the private `avatars` bucket under `<user_id>/`; `profiles.avatar_url` stores the storage path (or an external Google URL) and is shown via short-lived signed URLs because public buckets are blocked in this workspace.
+- Approved-only pages live under `src/routes/_authenticated/_approved/`, whose `beforeLoad` loads the profile and admin flag into route context.
+- Admin is granted only by a `user_roles` row, never by matching an email at signup, because email confirmation is off and an email match proves nothing.

@@ -1,0 +1,159 @@
+import type { ReactNode } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { AnimatePresence, motion } from "framer-motion";
+import { Moon, Power, Wrench } from "lucide-react";
+import { Logo } from "@/components/bacbo/Logo";
+import { LiquidBoard } from "@/components/bacbo/LiquidBoard";
+import { Cube3D } from "@/components/bacbo/Cube3D";
+import { SignalOrb } from "@/components/bacbo/SignalOrb";
+import { distribution } from "@/lib/bacbo-engine";
+import { useRobot } from "@/lib/robot-context";
+import { useNow } from "@/lib/use-now";
+import { cn } from "@/lib/utils";
+
+export const Route = createFileRoute("/_authenticated/_approved/robos")({
+  head: () => ({
+    meta: [
+      { title: "Robôs — Bac Bo Live" },
+      { name: "description", content: "Acompanhe o robô Bac Bo Live e receba o sinal de Jogador ou Casa assim que ele for gerado." },
+      { property: "og:title", content: "Robôs — Bac Bo Live" },
+      { property: "og:description", content: "Sinais de Jogador ou Casa em tempo real." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
+  component: RobotsPage,
+});
+
+function Clock() {
+  const now = useNow(1000);
+  return <span className="font-display tabular-nums">{new Date(now).toLocaleTimeString("pt-BR")}</span>;
+}
+
+function RobotsPage() {
+  const robot = useRobot();
+  const { phase, isAdmin } = robot;
+  const on = phase !== "off";
+
+  // Liquid stays at the bottom while off or analyzing; it only rises once a signal is out.
+  const dist = phase === "signal" ? distribution(robot.history, robot.signal) : null;
+
+  return (
+    <div className="space-y-5">
+      <header className="pt-2">
+        <Logo />
+        <div className="mt-3 flex items-center justify-center gap-3 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/60 px-3 py-1">
+            <span className={cn("h-1.5 w-1.5 rounded-full", on ? "bg-success" : "bg-muted-foreground")} />
+            {on ? "Online" : "Standby"}
+          </span>
+          <Clock />
+        </div>
+      </header>
+
+      {isAdmin && (
+        <motion.button
+          onClick={robot.toggle}
+          whileTap={{ scale: 0.97 }}
+          disabled={robot.toggling}
+          className={cn(
+            "relative flex h-14 w-full items-center justify-center gap-2.5 overflow-hidden rounded-full font-display text-base font-bold tracking-wide transition-colors disabled:opacity-60",
+            robot.running
+              ? "border border-border bg-secondary text-foreground"
+              : "bg-gradient-to-r from-success/90 to-success text-background shadow-[0_18px_40px_-18px_var(--success)]",
+          )}
+        >
+          {!robot.running && (
+            <motion.span
+              className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-foreground/30 to-transparent"
+              animate={{ x: ["-120%", "320%"] }}
+              transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+            />
+          )}
+          <Power className="relative h-5 w-5" />
+          <span className="relative">{robot.running ? "Desligar Robô" : "Ligar Robô"}</span>
+        </motion.button>
+      )}
+
+      <LiquidBoard dist={dist} winner={phase === "signal" ? (robot.signal?.side ?? null) : null} />
+
+      <AnimatePresence mode="wait">
+        {robot.maintenance ? (
+          <Panel key="maint">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full border border-tie/30 bg-tie/10 text-tie">
+              <Wrench className="h-7 w-7" />
+            </div>
+            <span className="mt-4 text-[11px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">Modo manutenção</span>
+            <h2 className="mt-1 font-display text-2xl font-extrabold">ROBÔ PAUSADO</h2>
+            <p className="mt-2 text-sm text-muted-foreground">O administrador está calibrando o sistema. Volte em instantes.</p>
+          </Panel>
+        ) : phase === "off" ? (
+          <Panel key="off">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full border border-border bg-background/60 text-muted-foreground">
+              <Moon className="h-7 w-7" />
+            </div>
+            <h2 className="mt-4 font-display text-2xl font-extrabold">STANDBY</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {isAdmin ? "Toque em Ligar Robô para iniciar os sinais para todos." : "Aguarde o administrador iniciar o robô."}
+            </p>
+          </Panel>
+        ) : phase === "analyzing" ? (
+          <Analyzing key={`analyzing-${robot.cycle}`} />
+        ) : (
+          robot.signal && (
+            <SignalOrb key={`signal-${robot.cycle}`} side={robot.signal.side} phaseStart={robot.phaseStart} phaseEnd={robot.phaseEnd} />
+          )
+        )}
+      </AnimatePresence>
+
+      <p className="px-4 text-center text-[11px] leading-relaxed text-muted-foreground/70">
+        As rodadas analisadas são geradas pelo robô a partir das probabilidades reais dos dados — não há leitura direta da mesa.
+        Sinais não garantem ganhos. Jogue com responsabilidade · +18.
+      </p>
+    </div>
+  );
+}
+
+function Panel({ children }: { children: ReactNode }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: 0.3 }}
+      className="glass flex flex-col items-center rounded-[1.75rem] px-6 py-8 text-center"
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function Analyzing() {
+  const { phaseStart, phaseEnd } = useRobot();
+  const now = useNow(100);
+  const total = phaseEnd - phaseStart;
+  const elapsed = Math.min(total, Math.max(0, now - phaseStart));
+  const left = Math.max(0, Math.ceil((total - elapsed) / 1000));
+
+  return (
+    <Panel>
+      <Cube3D size={100} />
+      <h2 className="mt-3 font-display text-xl font-extrabold tracking-[0.14em]">
+        <span className="text-success">SISTEMA ONLINE</span> <span className="text-foreground">ANALISANDO</span>
+      </h2>
+      <div className="mt-6 w-full">
+        <div className="mb-1.5 flex justify-end text-[11px] font-semibold text-muted-foreground">
+          <span className="tabular-nums">{left}s</span>
+        </div>
+        <div className="h-2 overflow-hidden rounded-full bg-muted">
+          <div
+            className="relative h-full rounded-full bg-gradient-to-r from-success/60 to-success transition-[width] duration-100 ease-linear"
+            style={{ width: `${(elapsed / total) * 100}%` }}
+          >
+            <span className="absolute right-0 top-1/2 h-3 w-3 -translate-y-1/2 translate-x-1/2 rounded-full bg-success shadow-[0_0_12px_var(--success)]" />
+          </div>
+        </div>
+      </div>
+    </Panel>
+  );
+}
