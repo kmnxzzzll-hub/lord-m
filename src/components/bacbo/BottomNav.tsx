@@ -18,7 +18,11 @@ export function BottomNav() {
           {items.map(({ to, label, icon: Icon }) => {
             const active = pathname.startsWith(to);
             return (
-              <Link key={to} to={to} className="relative flex flex-1 flex-col items-center gap-0.5 rounded-2xl py-1.5 sm:py-2">
+              <Link
+                key={to}
+                to={to}
+                className="relative flex flex-1 flex-col items-center gap-0.5 rounded-2xl py-1.5 sm:py-2"
+              >
                 {active && (
                   <motion.span
                     layoutId="nav-pill"
@@ -26,8 +30,18 @@ export function BottomNav() {
                     transition={{ type: "spring", stiffness: 420, damping: 32 }}
                   />
                 )}
-                <Icon className={cn("relative h-[18px] w-[18px] transition-colors sm:h-5 sm:w-5", active ? "text-foreground" : "text-muted-foreground")} />
-                <span className={cn("relative text-[10px] font-semibold sm:text-[11px] transition-colors", active ? "text-foreground" : "text-muted-foreground")}>
+                <Icon
+                  className={cn(
+                    "relative h-[18px] w-[18px] transition-colors sm:h-5 sm:w-5",
+                    active ? "text-foreground" : "text-muted-foreground",
+                  )}
+                />
+                <span
+                  className={cn(
+                    "relative text-[10px] font-semibold sm:text-[11px] transition-colors",
+                    active ? "text-foreground" : "text-muted-foreground",
+                  )}
+                >
                   {label}
                 </span>
               </Link>

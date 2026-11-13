@@ -35,6 +35,6 @@ use the editor.
 - Only admins switch the robot on/off (`robot_settings.running`, admin-only update policy); clients poll settings, so never start signals from client-side state alone.
 - Signal history is per login session in localStorage (keyed by user and `last_sign_in_at`, cleared on sign-out); the old `signals` table is deprecated.
 - Avatars live in the private `avatars` bucket under `<user_id>/`; `profiles.avatar_url` stores the storage path (or an external Google URL) and is shown via short-lived signed URLs because public buckets are blocked in this workspace.
-- Approved-only pages live under `src/routes/_authenticated/_approved/`, whose `beforeLoad` loads the profile and admin flag into route context.
+- Approved-only pages live under `src/routes/_authenticated/_approved/`; its `beforeLoad` reads the cached `myAccountQuery` (profile + admin flag) so tab switches skip the network, and pages read live values via `useMyAccount()`; edits such as a new avatar update that cache, never `router.invalidate()`.
 - Admin is granted only by a `user_roles` row; the signup trigger `handle_new_user` adds it (and approves) solely for the single reserved admin e-mail, because the owner chose first-signup-claims-it with auto-confirm on; never add other email-based grants.
 - Deleting accounts goes through the admin-only `deleteUserAccount` server function (`src/lib/admin.functions.ts`), which checks `has_role` before using the service client, because removing auth users needs privileged access.

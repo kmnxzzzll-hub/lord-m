@@ -84,8 +84,10 @@ export function Cube3D({ size = 96, className }: { size?: number; className?: st
 
     (async () => {
       const THREE = await import("three");
-      const { RoundedBoxGeometry } = await import("three/examples/jsm/geometries/RoundedBoxGeometry.js");
-      const { RoomEnvironment } = await import("three/examples/jsm/environments/RoomEnvironment.js");
+      const { RoundedBoxGeometry } =
+        await import("three/examples/jsm/geometries/RoundedBoxGeometry.js");
+      const { RoomEnvironment } =
+        await import("three/examples/jsm/environments/RoomEnvironment.js");
       if (disposed) return;
 
       const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -171,7 +173,10 @@ export function Cube3D({ size = 96, className }: { size?: number; className?: st
   }, [box]);
 
   return (
-    <div className={cn("relative flex flex-col items-center", className)} style={{ height: box + 8 }}>
+    <div
+      className={cn("relative flex flex-col items-center", className)}
+      style={{ height: box + 8 }}
+    >
       <motion.div
         ref={mountRef}
         style={{ width: box, height: box }}

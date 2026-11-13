@@ -17,7 +17,10 @@ function BubbleColumn({ side, isPlayer }: { side: "left" | "right"; isPlayer: bo
   return (
     <div
       aria-hidden
-      className={cn("pointer-events-none absolute inset-y-0 w-[26%] overflow-hidden", side === "left" ? "left-0" : "right-0")}
+      className={cn(
+        "pointer-events-none absolute inset-y-0 w-[26%] overflow-hidden",
+        side === "left" ? "left-0" : "right-0",
+      )}
       style={{
         maskImage: "linear-gradient(to top, transparent, black 18%, black 70%, transparent)",
         WebkitMaskImage: "linear-gradient(to top, transparent, black 18%, black 70%, transparent)",
@@ -30,9 +33,18 @@ function BubbleColumn({ side, isPlayer }: { side: "left" | "right"; isPlayer: bo
             "absolute bottom-0 rounded-full border",
             isPlayer ? "border-player-glow/50 bg-player/25" : "border-banker-glow/50 bg-banker/25",
           )}
-          style={{ left: `${side === "left" ? left : 100 - left - 10}%`, width: size, height: size }}
+          style={{
+            left: `${side === "left" ? left : 100 - left - 10}%`,
+            width: size,
+            height: size,
+          }}
           initial={{ y: 0, opacity: 0 }}
-          animate={{ y: [0, -220], x: [0, i % 2 ? 6 : -6, 0], opacity: [0, 0.9, 0], scale: [0.6, 1, 1.1] }}
+          animate={{
+            y: [0, -220],
+            x: [0, i % 2 ? 6 : -6, 0],
+            opacity: [0, 0.9, 0],
+            scale: [0.6, 1, 1.1],
+          }}
           transition={{ duration, delay, repeat: Infinity, ease: "easeOut" }}
         />
       ))}
@@ -40,7 +52,15 @@ function BubbleColumn({ side, isPlayer }: { side: "left" | "right"; isPlayer: bo
   );
 }
 
-export function SignalOrb({ side, phaseStart, phaseEnd }: { side: Side; phaseStart: number; phaseEnd: number }) {
+export function SignalOrb({
+  side,
+  phaseStart,
+  phaseEnd,
+}: {
+  side: Side;
+  phaseStart: number;
+  phaseEnd: number;
+}) {
   const now = useNow(250);
   const isPlayer = side === "player";
   const left = Math.max(0, Math.min(1, (phaseEnd - now) / (phaseEnd - phaseStart)));
@@ -58,15 +78,25 @@ export function SignalOrb({ side, phaseStart, phaseEnd }: { side: Side; phaseSta
 
       <div className="relative flex h-36 w-36 items-center justify-center sm:h-44 sm:w-44">
         <motion.span
-          className={cn("absolute inset-3 rounded-full blur-2xl", isPlayer ? "bg-player/50" : "bg-banker/50")}
+          className={cn(
+            "absolute inset-3 rounded-full blur-2xl",
+            isPlayer ? "bg-player/50" : "bg-banker/50",
+          )}
           animate={{ scale: [0.92, 1.08, 0.92], opacity: [0.5, 0.85, 0.5] }}
           transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
         />
         <motion.div
           initial={{ scale: 0.2, rotate: -40 }}
           animate={{ scale: 1, rotate: 0, y: [0, -6, 0] }}
-          transition={{ scale: { type: "spring", stiffness: 200, damping: 14 }, rotate: { duration: 0.6 }, y: { duration: 3, repeat: Infinity, ease: "easeInOut" } }}
-          className={cn("relative h-28 w-28 rounded-full sm:h-36 sm:w-36", isPlayer ? "ball-player" : "ball-banker")}
+          transition={{
+            scale: { type: "spring", stiffness: 200, damping: 14 },
+            rotate: { duration: 0.6 },
+            y: { duration: 3, repeat: Infinity, ease: "easeInOut" },
+          }}
+          className={cn(
+            "relative h-28 w-28 rounded-full sm:h-36 sm:w-36",
+            isPlayer ? "ball-player" : "ball-banker",
+          )}
         >
           <span className="absolute left-[20%] top-[12%] h-[24%] w-[38%] rounded-full bg-foreground/40 blur-[4px]" />
         </motion.div>
@@ -84,7 +114,10 @@ export function SignalOrb({ side, phaseStart, phaseEnd }: { side: Side; phaseSta
       </motion.h2>
       <div className="relative mt-4 h-1 w-32 overflow-hidden rounded-full bg-muted sm:mt-6 sm:w-40">
         <div
-          className={cn("h-full rounded-full transition-[width] duration-300 ease-linear", isPlayer ? "bg-player-glow" : "bg-banker-glow")}
+          className={cn(
+            "h-full rounded-full transition-[width] duration-300 ease-linear",
+            isPlayer ? "bg-player-glow" : "bg-banker-glow",
+          )}
           style={{ width: `${left * 100}%` }}
         />
       </div>

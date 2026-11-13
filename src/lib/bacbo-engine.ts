@@ -146,7 +146,10 @@ export function resultFor(attemptIndex: number, won: boolean): SignalResult {
   return (["green_g0", "green_g1", "green_g2"] as const)[attemptIndex] ?? "green_g2";
 }
 
-export function resolveSignal(side: Side, next: Outcome[]): { result: SignalResult; tieHit: boolean; used: number } {
+export function resolveSignal(
+  side: Side,
+  next: Outcome[],
+): { result: SignalResult; tieHit: boolean; used: number } {
   for (let i = 0; i < Math.min(3, next.length); i++) {
     const r = resolveAttempt(side, next[i]!);
     if (r !== "loss") return { result: resultFor(i, true), tieHit: r === "tie", used: i + 1 };

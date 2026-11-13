@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { mergeSignals, robotView, signalsBetween, SIGNAL_MS, type ScheduleConfig } from "./robot-schedule";
+import {
+  mergeSignals,
+  robotView,
+  signalsBetween,
+  SIGNAL_MS,
+  type ScheduleConfig,
+} from "./robot-schedule";
 
 const cfg: ScheduleConfig = { startedAt: 1_800_000_000_000, analysisMs: 15_000, minConfidence: 70 };
 const cycleMs = cfg.analysisMs + SIGNAL_MS;
@@ -28,7 +34,10 @@ describe("shared robot schedule", () => {
   });
 
   it("reveals a Jogador or Casa signal after the analysis time", () => {
-    const sides = Array.from({ length: 10 }, (_, c) => robotView(cfg, cfg.startedAt + c * cycleMs + cfg.analysisMs + 1).signal?.side);
+    const sides = Array.from(
+      { length: 10 },
+      (_, c) => robotView(cfg, cfg.startedAt + c * cycleMs + cfg.analysisMs + 1).signal?.side,
+    );
     const found = sides.filter(Boolean);
     expect(found.length).toBeGreaterThan(0);
     for (const s of found) expect(["player", "banker"]).toContain(s);

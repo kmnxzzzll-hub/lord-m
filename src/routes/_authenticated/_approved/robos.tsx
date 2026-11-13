@@ -16,7 +16,11 @@ export const Route = createFileRoute("/_authenticated/_approved/robos")({
   head: () => ({
     meta: [
       { title: "Robôs — Bac Bo Live" },
-      { name: "description", content: "Acompanhe o robô Bac Bo Live e receba o sinal de Jogador ou Casa assim que ele for gerado." },
+      {
+        name: "description",
+        content:
+          "Acompanhe o robô Bac Bo Live e receba o sinal de Jogador ou Casa assim que ele for gerado.",
+      },
       { property: "og:title", content: "Robôs — Bac Bo Live" },
       { property: "og:description", content: "Sinais de Jogador ou Casa em tempo real." },
       { property: "og:type", content: "website" },
@@ -28,7 +32,9 @@ export const Route = createFileRoute("/_authenticated/_approved/robos")({
 
 function Clock() {
   const now = useNow(1000);
-  return <span className="font-display tabular-nums">{new Date(now).toLocaleTimeString("pt-BR")}</span>;
+  return (
+    <span className="font-display tabular-nums">{new Date(now).toLocaleTimeString("pt-BR")}</span>
+  );
 }
 
 function RobotsPage() {
@@ -42,78 +48,99 @@ function RobotsPage() {
   return (
     <div className="space-y-4 sm:space-y-5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-8 lg:gap-y-5 lg:space-y-0">
       <div className="space-y-4 sm:space-y-5">
-      <header className="pt-1 sm:pt-2">
-        <Logo />
-        <div className="mt-2.5 flex items-center justify-center gap-3 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/60 px-3 py-1">
-            <span className={cn("h-1.5 w-1.5 rounded-full", on ? "bg-success" : "bg-muted-foreground")} />
-            {on ? "Online" : "Standby"}
-          </span>
-          <Clock />
-        </div>
-      </header>
+        <header className="pt-1 sm:pt-2">
+          <Logo />
+          <div className="mt-2.5 flex items-center justify-center gap-3 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/60 px-3 py-1">
+              <span
+                className={cn(
+                  "h-1.5 w-1.5 rounded-full",
+                  on ? "bg-success" : "bg-muted-foreground",
+                )}
+              />
+              {on ? "Online" : "Standby"}
+            </span>
+            <Clock />
+          </div>
+        </header>
 
-      {isAdmin && (
-        <motion.button
-          onClick={robot.toggle}
-          whileTap={{ scale: 0.97 }}
-          disabled={robot.toggling}
-          className={cn(
-            "relative flex h-12 w-full items-center justify-center gap-2.5 overflow-hidden rounded-full font-display text-[15px] font-bold sm:h-14 sm:text-base tracking-wide transition-colors disabled:opacity-60",
-            robot.running
-              ? "border border-border bg-secondary text-foreground"
-              : "bg-gradient-to-r from-success/90 to-success text-background shadow-[0_18px_40px_-18px_var(--success)]",
-          )}
-        >
-          {!robot.running && (
-            <motion.span
-              className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-foreground/30 to-transparent"
-              animate={{ x: ["-120%", "320%"] }}
-              transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
-            />
-          )}
-          <Power className="relative h-5 w-5" />
-          <span className="relative">{robot.running ? "Desligar Robô" : "Ligar Robô"}</span>
-        </motion.button>
-      )}
+        {isAdmin && (
+          <motion.button
+            onClick={robot.toggle}
+            whileTap={{ scale: 0.97 }}
+            disabled={robot.toggling}
+            className={cn(
+              "relative flex h-12 w-full items-center justify-center gap-2.5 overflow-hidden rounded-full font-display text-[15px] font-bold sm:h-14 sm:text-base tracking-wide transition-colors disabled:opacity-60",
+              robot.running
+                ? "border border-border bg-secondary text-foreground"
+                : "bg-gradient-to-r from-success/90 to-success text-background shadow-[0_18px_40px_-18px_var(--success)]",
+            )}
+          >
+            {!robot.running && (
+              <motion.span
+                className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-foreground/30 to-transparent"
+                animate={{ x: ["-120%", "320%"] }}
+                transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+              />
+            )}
+            <Power className="relative h-5 w-5" />
+            <span className="relative">{robot.running ? "Desligar Robô" : "Ligar Robô"}</span>
+          </motion.button>
+        )}
 
-      <LiquidBoard dist={dist} winner={phase === "signal" ? (robot.signal?.side ?? null) : null} />
+        <LiquidBoard
+          dist={dist}
+          winner={phase === "signal" ? (robot.signal?.side ?? null) : null}
+        />
       </div>
 
       <div className="lg:pt-2">
-      <AnimatePresence mode="wait">
-        {robot.maintenance ? (
-          <Panel key="maint">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full border border-tie/30 bg-tie/10 text-tie">
-              <Wrench className="h-7 w-7" />
-            </div>
-            <span className="mt-4 text-[11px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">Modo manutenção</span>
-            <h2 className="mt-1 font-display text-2xl font-extrabold">ROBÔ PAUSADO</h2>
-            <p className="mt-2 text-sm text-muted-foreground">O administrador está calibrando o sistema. Volte em instantes.</p>
-          </Panel>
-        ) : phase === "off" ? (
-          <Panel key="off">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full border border-border bg-background/60 sm:h-16 sm:w-16 text-muted-foreground">
-              <Moon className="h-7 w-7" />
-            </div>
-            <h2 className="mt-3 font-display text-xl font-extrabold sm:mt-4 sm:text-2xl">STANDBY</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              {isAdmin ? "Toque em Ligar Robô para iniciar os sinais para todos." : "Aguarde o administrador iniciar o robô."}
-            </p>
-          </Panel>
-        ) : phase === "analyzing" ? (
-          <Analyzing key={`analyzing-${robot.cycle}`} />
-        ) : (
-          robot.signal && (
-            <SignalOrb key={`signal-${robot.cycle}`} side={robot.signal.side} phaseStart={robot.phaseStart} phaseEnd={robot.phaseEnd} />
-          )
-        )}
-      </AnimatePresence>
+        <AnimatePresence mode="wait">
+          {robot.maintenance ? (
+            <Panel key="maint">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full border border-tie/30 bg-tie/10 text-tie">
+                <Wrench className="h-7 w-7" />
+              </div>
+              <span className="mt-4 text-[11px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+                Modo manutenção
+              </span>
+              <h2 className="mt-1 font-display text-2xl font-extrabold">ROBÔ PAUSADO</h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                O administrador está calibrando o sistema. Volte em instantes.
+              </p>
+            </Panel>
+          ) : phase === "off" ? (
+            <Panel key="off">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full border border-border bg-background/60 sm:h-16 sm:w-16 text-muted-foreground">
+                <Moon className="h-7 w-7" />
+              </div>
+              <h2 className="mt-3 font-display text-xl font-extrabold sm:mt-4 sm:text-2xl">
+                STANDBY
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {isAdmin
+                  ? "Toque em Ligar Robô para iniciar os sinais para todos."
+                  : "Aguarde o administrador iniciar o robô."}
+              </p>
+            </Panel>
+          ) : phase === "analyzing" ? (
+            <Analyzing key={`analyzing-${robot.cycle}`} />
+          ) : (
+            robot.signal && (
+              <SignalOrb
+                key={`signal-${robot.cycle}`}
+                side={robot.signal.side}
+                phaseStart={robot.phaseStart}
+                phaseEnd={robot.phaseEnd}
+              />
+            )
+          )}
+        </AnimatePresence>
       </div>
 
       <p className="px-3 text-center lg:col-span-2 text-[11px] leading-relaxed text-muted-foreground/70">
-        As rodadas analisadas são geradas pelo robô a partir das probabilidades reais dos dados — não há leitura direta da mesa.
-        Sinais não garantem ganhos. Jogue com responsabilidade · +18.
+        As rodadas analisadas são geradas pelo robô a partir das probabilidades reais dos dados —
+        não há leitura direta da mesa. Sinais não garantem ganhos. Jogue com responsabilidade · +18.
       </p>
     </div>
   );
@@ -145,7 +172,8 @@ function Analyzing() {
     <Panel>
       <Cube3D size={isMobile ? 76 : 100} />
       <h2 className="mt-2 font-display text-base font-extrabold tracking-[0.12em] sm:mt-3 sm:text-xl sm:tracking-[0.14em]">
-        <span className="text-success">SISTEMA ONLINE</span> <span className="text-foreground">ANALISANDO</span>
+        <span className="text-success">SISTEMA ONLINE</span>{" "}
+        <span className="text-foreground">ANALISANDO</span>
       </h2>
       <div className="mt-4 w-full sm:mt-6">
         <div className="mb-1.5 flex justify-end text-[11px] font-semibold text-muted-foreground">

@@ -9,7 +9,10 @@ export const Route = createFileRoute("/_authenticated/_approved/historico")({
   head: () => ({
     meta: [
       { title: "Histórico — Bac Bo Live" },
-      { name: "description", content: "As cores dos últimos sinais gerados pelo robô Bac Bo Live nesta sessão." },
+      {
+        name: "description",
+        content: "As cores dos últimos sinais gerados pelo robô Bac Bo Live nesta sessão.",
+      },
       { property: "og:title", content: "Histórico — Bac Bo Live" },
       { property: "og:description", content: "Últimos sinais gerados nesta sessão." },
       { property: "og:type", content: "website" },
@@ -31,14 +34,18 @@ function HistoryPage() {
         </div>
         <div>
           <h1 className="font-display text-xl font-bold tracking-tight sm:text-2xl">Histórico</h1>
-          <p className="text-xs text-muted-foreground">Sinais desta sessão · {sessionSignals.length}</p>
+          <p className="text-xs text-muted-foreground">
+            Sinais desta sessão · {sessionSignals.length}
+          </p>
         </div>
       </header>
 
       {sessionSignals.length === 0 ? (
         <div className="glass rounded-[1.75rem] p-8 text-center">
           <p className="font-display text-lg font-bold">Nenhum sinal nesta sessão</p>
-          <p className="mt-1 text-sm text-muted-foreground">As cores aparecem aqui assim que o robô gerar os sinais.</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            As cores aparecem aqui assim que o robô gerar os sinais.
+          </p>
         </div>
       ) : (
         <div className="glass rounded-[1.75rem] p-4 sm:p-5">
@@ -48,10 +55,19 @@ function HistoryPage() {
                 key={s.key}
                 initial={{ opacity: 0, scale: 0.4 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: Math.min(i * 0.025, 0.6), type: "spring", stiffness: 260, damping: 18 }}
+                transition={{
+                  delay: Math.min(i * 0.025, 0.6),
+                  type: "spring",
+                  stiffness: 260,
+                  damping: 18,
+                }}
                 className="flex justify-center"
               >
-                <Ball kind={s.side} label={s.side === "player" ? "J" : "C"} size={isMobile ? 34 : 40} />
+                <Ball
+                  kind={s.side}
+                  label={s.side === "player" ? "J" : "C"}
+                  size={isMobile ? 34 : 40}
+                />
               </motion.li>
             ))}
           </ul>

@@ -1,7 +1,20 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, Ban, Check, KeyRound, Loader2, Power, RotateCcw, ShieldCheck, Trash2, Users, Wrench, X } from "lucide-react";
+import {
+  ArrowLeft,
+  Ban,
+  Check,
+  KeyRound,
+  Loader2,
+  Power,
+  RotateCcw,
+  ShieldCheck,
+  Trash2,
+  Users,
+  Wrench,
+  X,
+} from "lucide-react";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -34,7 +47,10 @@ export const Route = createFileRoute("/_authenticated/_approved/admin")({
   head: () => ({
     meta: [
       { title: "Painel Admin — Bac Bo Live" },
-      { name: "description", content: "Gerencie cadastros, acessos e calibragem do robô Bac Bo Live." },
+      {
+        name: "description",
+        content: "Gerencie cadastros, acessos e calibragem do robô Bac Bo Live.",
+      },
       { property: "og:title", content: "Painel Admin — Bac Bo Live" },
       { property: "og:description", content: "Área administrativa do robô Bac Bo Live." },
       { property: "og:type", content: "website" },
@@ -61,7 +77,9 @@ function AdminPage() {
     onMutate: async ({ id, status }) => {
       await queryClient.cancelQueries({ queryKey: allProfilesQuery.queryKey });
       const prev = queryClient.getQueryData(allProfilesQuery.queryKey);
-      queryClient.setQueryData(allProfilesQuery.queryKey, (old: Profile[] = []) => old.map((p) => (p.id === id ? { ...p, status } : p)));
+      queryClient.setQueryData(allProfilesQuery.queryKey, (old: Profile[] = []) =>
+        old.map((p) => (p.id === id ? { ...p, status } : p)),
+      );
       return { prev };
     },
     onError: (_e, _v, ctx) => {
@@ -87,7 +105,9 @@ function AdminPage() {
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: allProfilesQuery.queryKey });
       const prev = queryClient.getQueryData(allProfilesQuery.queryKey);
-      queryClient.setQueryData(allProfilesQuery.queryKey, (old: Profile[] = []) => old.filter((p) => p.id !== id));
+      queryClient.setQueryData(allProfilesQuery.queryKey, (old: Profile[] = []) =>
+        old.filter((p) => p.id !== id),
+      );
       return { prev };
     },
     onError: (e, _v, ctx) => {
@@ -104,11 +124,17 @@ function AdminPage() {
   return (
     <div className="mx-auto space-y-3 pt-2 sm:space-y-4 lg:max-w-3xl">
       <header className="flex items-center gap-3">
-        <Link to="/perfil" aria-label="Voltar" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-card">
+        <Link
+          to="/perfil"
+          aria-label="Voltar"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-card"
+        >
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <div className="min-w-0">
-          <h1 className="truncate font-display text-lg font-bold tracking-tight sm:text-xl">Painel do Administrador</h1>
+          <h1 className="truncate font-display text-lg font-bold tracking-tight sm:text-xl">
+            Painel do Administrador
+          </h1>
           <p className="text-xs text-muted-foreground">Acessos, robô e senha</p>
         </div>
       </header>
@@ -122,9 +148,25 @@ function AdminPage() {
             ["account", "Senha"],
           ] as const
         ).map(([k, label]) => (
-          <button key={k} onClick={() => setTab(k)} className="relative rounded-xl px-1 py-2 text-xs font-semibold sm:py-2.5 sm:text-sm">
-            {tab === k && <motion.span layoutId="admin-tab" className="absolute inset-0 rounded-xl bg-secondary ring-1 ring-border" />}
-            <span className={cn("relative block truncate", tab === k ? "text-foreground" : "text-muted-foreground")}>{label}</span>
+          <button
+            key={k}
+            onClick={() => setTab(k)}
+            className="relative rounded-xl px-1 py-2 text-xs font-semibold sm:py-2.5 sm:text-sm"
+          >
+            {tab === k && (
+              <motion.span
+                layoutId="admin-tab"
+                className="absolute inset-0 rounded-xl bg-secondary ring-1 ring-border"
+              />
+            )}
+            <span
+              className={cn(
+                "relative block truncate",
+                tab === k ? "text-foreground" : "text-muted-foreground",
+              )}
+            >
+              {label}
+            </span>
             {k === "pending" && pending.length > 0 && (
               <span className="absolute -right-0.5 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-tie px-1 text-[10px] font-bold text-background">
                 {pending.length}
@@ -135,15 +177,29 @@ function AdminPage() {
       </div>
 
       <AnimatePresence mode="wait">
-        <motion.div key={tab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
+        <motion.div
+          key={tab}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.2 }}
+        >
           {tab === "pending" && (
             <List loading={isLoading} empty="Nenhum cadastro aguardando aprovação.">
               {pending.map((p) => (
                 <UserRow key={p.id} p={p}>
-                  <IconBtn tone="success" label="Aprovar" onClick={() => setStatus.mutate({ id: p.id, status: "approved" })}>
+                  <IconBtn
+                    tone="success"
+                    label="Aprovar"
+                    onClick={() => setStatus.mutate({ id: p.id, status: "approved" })}
+                  >
                     <Check className="h-4 w-4" />
                   </IconBtn>
-                  <IconBtn tone="danger" label="Recusar" onClick={() => setStatus.mutate({ id: p.id, status: "rejected" })}>
+                  <IconBtn
+                    tone="danger"
+                    label="Recusar"
+                    onClick={() => setStatus.mutate({ id: p.id, status: "rejected" })}
+                  >
                     <X className="h-4 w-4" />
                   </IconBtn>
                   <IconBtn tone="muted" label="Excluir" onClick={() => setToDelete(p)}>
@@ -162,11 +218,19 @@ function AdminPage() {
                   ) : (
                     <>
                       {p.status === "approved" ? (
-                        <IconBtn tone="danger" label="Bloquear" onClick={() => setStatus.mutate({ id: p.id, status: "blocked" })}>
+                        <IconBtn
+                          tone="danger"
+                          label="Bloquear"
+                          onClick={() => setStatus.mutate({ id: p.id, status: "blocked" })}
+                        >
                           <Ban className="h-4 w-4" />
                         </IconBtn>
                       ) : (
-                        <IconBtn tone="success" label="Reativar" onClick={() => setStatus.mutate({ id: p.id, status: "approved" })}>
+                        <IconBtn
+                          tone="success"
+                          label="Reativar"
+                          onClick={() => setStatus.mutate({ id: p.id, status: "approved" })}
+                        >
                           <RotateCcw className="h-4 w-4" />
                         </IconBtn>
                       )}
@@ -189,7 +253,8 @@ function AdminPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir cadastro?</AlertDialogTitle>
             <AlertDialogDescription>
-              A conta de {toDelete?.name || toDelete?.email} será apagada de vez. A pessoa precisará se cadastrar de novo para pedir acesso.
+              A conta de {toDelete?.name || toDelete?.email} será apagada de vez. A pessoa precisará
+              se cadastrar de novo para pedir acesso.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -210,7 +275,15 @@ function AdminPage() {
   );
 }
 
-function List({ loading, empty, children }: { loading: boolean; empty: string; children: ReactNode[] }) {
+function List({
+  loading,
+  empty,
+  children,
+}: {
+  loading: boolean;
+  empty: string;
+  children: ReactNode[];
+}) {
   if (loading) return <div className="glass h-24 animate-pulse rounded-2xl" />;
   if (children.length === 0)
     return (
@@ -228,16 +301,35 @@ const BADGE: Record<Status, string> = {
   rejected: "border-destructive/30 bg-destructive/10 text-destructive",
   blocked: "border-destructive/30 bg-destructive/10 text-destructive",
 };
-const BADGE_LABEL: Record<Status, string> = { approved: "Ativo", pending: "Pendente", rejected: "Recusado", blocked: "Bloqueado" };
+const BADGE_LABEL: Record<Status, string> = {
+  approved: "Ativo",
+  pending: "Pendente",
+  rejected: "Recusado",
+  blocked: "Bloqueado",
+};
 
 function UserRow({ p, badge, children }: { p: Profile; badge?: Status; children: ReactNode }) {
   return (
     <motion.li layout className="glass flex items-center gap-2.5 rounded-2xl p-2.5 sm:gap-3 sm:p-3">
-      <Avatar value={p.avatar_url} name={p.name} className="h-9 w-9 shrink-0 sm:h-10 sm:w-10" textClass="text-sm" />
+      <Avatar
+        value={p.avatar_url}
+        name={p.name}
+        className="h-9 w-9 shrink-0 sm:h-10 sm:w-10"
+        textClass="text-sm"
+      />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <p className="truncate text-sm font-semibold sm:text-base">{p.name || "Sem nome"}</p>
-          {badge && <span className={cn("shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase", BADGE[badge])}>{BADGE_LABEL[badge]}</span>}
+          {badge && (
+            <span
+              className={cn(
+                "shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase",
+                BADGE[badge],
+              )}
+            >
+              {BADGE_LABEL[badge]}
+            </span>
+          )}
         </div>
         <p className="truncate text-xs text-muted-foreground">{p.email}</p>
       </div>
@@ -246,7 +338,17 @@ function UserRow({ p, badge, children }: { p: Profile; badge?: Status; children:
   );
 }
 
-function IconBtn({ tone, label, onClick, children }: { tone: "success" | "danger" | "muted"; label: string; onClick: () => void; children: ReactNode }) {
+function IconBtn({
+  tone,
+  label,
+  onClick,
+  children,
+}: {
+  tone: "success" | "danger" | "muted";
+  label: string;
+  onClick: () => void;
+  children: ReactNode;
+}) {
   return (
     <motion.button
       whileTap={{ scale: 0.9 }}
@@ -257,7 +359,8 @@ function IconBtn({ tone, label, onClick, children }: { tone: "success" | "danger
         "flex h-9 items-center gap-1.5 rounded-xl border px-2.5 text-xs font-semibold sm:h-10 sm:px-3",
         tone === "success" && "border-success/30 bg-success/10 text-success",
         tone === "danger" && "border-destructive/30 bg-destructive/10 text-destructive",
-        tone === "muted" && "border-border bg-secondary text-muted-foreground hover:text-destructive",
+        tone === "muted" &&
+          "border-border bg-secondary text-muted-foreground hover:text-destructive",
       )}
     >
       {children}
@@ -282,10 +385,16 @@ function RobotControls() {
   }, [settings]);
 
   const save = useMutation({
-    mutationFn: async (patch: { min_confidence?: number; analysis_seconds?: number; maintenance?: boolean }) => {
+    mutationFn: async (patch: {
+      min_confidence?: number;
+      analysis_seconds?: number;
+      maintenance?: boolean;
+    }) => {
       const now = new Date().toISOString();
       // Restart the shared schedule so every user switches to the new timing together.
-      const restart = settings?.running && (patch.min_confidence !== undefined || patch.analysis_seconds !== undefined);
+      const restart =
+        settings?.running &&
+        (patch.min_confidence !== undefined || patch.analysis_seconds !== undefined);
       const { error } = await supabase
         .from("robot_settings")
         .update({ ...patch, ...(restart ? { started_at: now } : {}), updated_at: now })
@@ -307,20 +416,37 @@ function RobotControls() {
         </div>
         <div className="flex-1">
           <p className="font-semibold">Robô ligado</p>
-          <p className="text-xs text-muted-foreground">Só você liga o robô. Desligado, ninguém recebe sinais.</p>
+          <p className="text-xs text-muted-foreground">
+            Só você liga o robô. Desligado, ninguém recebe sinais.
+          </p>
         </div>
-        <Switch checked={robot.running} disabled={robot.toggling} onCheckedChange={() => robot.toggle()} />
+        <Switch
+          checked={robot.running}
+          disabled={robot.toggling}
+          onCheckedChange={() => robot.toggle()}
+        />
       </div>
 
       <div className="glass rounded-2xl p-4 sm:p-5">
         <div className="flex items-center justify-between">
           <div>
             <p className="font-semibold">Força mínima do padrão</p>
-            <p className="text-xs text-muted-foreground">Só confirma entrada quando o padrão atinge este nível</p>
+            <p className="text-xs text-muted-foreground">
+              Só confirma entrada quando o padrão atinge este nível
+            </p>
           </div>
-          <span className="font-display text-xl font-extrabold sm:text-2xl text-success">{minConfidence}%</span>
+          <span className="font-display text-xl font-extrabold sm:text-2xl text-success">
+            {minConfidence}%
+          </span>
         </div>
-        <Slider className="mt-4" min={50} max={90} step={1} value={[minConfidence]} onValueChange={([v]) => setMinConfidence(v ?? 70)} />
+        <Slider
+          className="mt-4"
+          min={50}
+          max={90}
+          step={1}
+          value={[minConfidence]}
+          onValueChange={([v]) => setMinConfidence(v ?? 70)}
+        />
         <p className="mt-3 text-[11px] text-muted-foreground">
           Mais alto = menos sinais e mais seletivos.
         </p>
@@ -330,11 +456,20 @@ function RobotControls() {
         <div className="flex items-center justify-between">
           <div>
             <p className="font-semibold">Tempo da análise</p>
-            <p className="text-xs text-muted-foreground">Duração da análise antes de gerar o sinal</p>
+            <p className="text-xs text-muted-foreground">
+              Duração da análise antes de gerar o sinal
+            </p>
           </div>
           <span className="font-display text-xl font-extrabold sm:text-2xl">{seconds}s</span>
         </div>
-        <Slider className="mt-4" min={5} max={60} step={1} value={[seconds]} onValueChange={([v]) => setSeconds(v ?? 15)} />
+        <Slider
+          className="mt-4"
+          min={5}
+          max={60}
+          step={1}
+          value={[seconds]}
+          onValueChange={([v]) => setSeconds(v ?? 15)}
+        />
       </div>
 
       <motion.button
@@ -381,10 +516,19 @@ function PasswordForm() {
     setSaving(true);
     try {
       // The backend requires and checks the current password, so a wrong one is rejected.
-      const { error } = await supabase.auth.updateUser({ password: form.next, current_password: form.current });
+      const { error } = await supabase.auth.updateUser({
+        password: form.next,
+        current_password: form.current,
+      });
       if (error) {
         const m = error.message.toLowerCase();
-        return setError(m.includes("current") || m.includes("reauth") || m.includes("invalid") ? "Senha atual incorreta." : "Não foi possível alterar a senha. Tente outra.");
+        return setError(
+          m.includes("current") || m.includes("reauth") || m.includes("invalid")
+            ? "Senha atual incorreta."
+            : m.includes("weak") || m.includes("pwned") || m.includes("leak")
+              ? "Essa senha é fraca ou já apareceu em vazamentos. Escolha outra."
+              : "Não foi possível alterar a senha. Tente outra.",
+        );
       }
       setForm({ current: "", next: "", confirm: "" });
       toast.success("Senha alterada");
@@ -424,7 +568,12 @@ function PasswordForm() {
         disabled={saving}
         className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-success/90 to-success font-semibold text-background disabled:opacity-60"
       >
-        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} Salvar nova senha
+        {saving ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <ShieldCheck className="h-4 w-4" />
+        )}{" "}
+        Salvar nova senha
       </motion.button>
     </form>
   );

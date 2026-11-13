@@ -1,5 +1,5 @@
 import { useRef, useState, type ReactNode } from "react";
-import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Camera, ChevronRight, Loader2, LogOut, Mail, ShieldCheck, UserRound } from "lucide-react";
@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { Avatar } from "@/components/bacbo/Avatar";
 import { signOutEverywhere } from "@/lib/auth-helpers";
 import { avatarUrlQuery, uploadAvatar } from "@/lib/avatar";
+import { useMyAccount } from "@/lib/account";
+import { allProfilesQuery, myAccountQuery, type MyAccount } from "@/lib/queries";
 
 export const Route = createFileRoute("/_authenticated/_approved/perfil")({
   head: () => ({
@@ -23,13 +25,12 @@ export const Route = createFileRoute("/_authenticated/_approved/perfil")({
 });
 
 function ProfilePage() {
-  const { profile, isAdmin } = Route.useRouteContext();
+  const { profile, isAdmin } = useMyAccount();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [avatar, setAvatar] = useState<string | null>(profile.avatar_url);
   const [uploading, setUploading] = useState(false);
+  const avatar = profile.avatar_url;
 
   async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -38,10 +39,15 @@ function ProfilePage() {
     setUploading(true);
     try {
       const path = await uploadAvatar(profile.id, file, avatar);
-      await queryClient.ensureQueryData(avatarUrlQuery(path));
-      setAvatar(path);
+      await queryClient.ensureQueryData(avatarUrlQuery(path)).catch(() => null);
+      // Store the new photo in the shared account cache, so every page (and coming back here) shows it.
+      const key = myAccountQuery(profile.id).queryKey;
+      await queryClient.cancelQueries({ queryKey: key });
+      queryClient.setQueryData<MyAccount>(key, (old) =>
+        old?.profile ? { ...old, profile: { ...old.profile, avatar_url: path } } : old,
+      );
+      void queryClient.invalidateQueries({ queryKey: allProfilesQuery.queryKey });
       toast.success("Foto de perfil atualizada");
-      void router.invalidate();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Não foi possível enviar a foto.");
     } finally {
@@ -61,7 +67,12 @@ function ProfilePage() {
       <div className="glass relative overflow-hidden rounded-[1.75rem] p-5 text-center sm:p-6">
         <div className="absolute inset-x-0 top-0 h-20 sm:h-24 bg-gradient-to-r from-player/30 via-tie/20 to-banker/30" />
         <div className="relative mx-auto mt-4 h-20 w-20 sm:mt-6 sm:h-24 sm:w-24">
-          <Avatar value={avatar} name={profile.name} className="h-20 w-20 border-4 sm:h-24 sm:w-24 border-background shadow-xl" textClass="text-3xl" />
+          <Avatar
+            value={avatar}
+            name={profile.name}
+            className="h-20 w-20 border-4 sm:h-24 sm:w-24 border-background shadow-xl"
+            textClass="text-3xl"
+          />
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
@@ -69,11 +80,17 @@ function ProfilePage() {
             aria-label="Alterar foto de perfil"
             className="absolute -bottom-1 -right-1 flex h-9 w-9 items-center justify-center rounded-full border-2 border-background bg-tie text-background shadow-lg disabled:opacity-70"
           >
-            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+            {uploading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Camera className="h-4 w-4" />
+            )}
           </button>
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPick} />
         </div>
-        <h2 className="relative mt-3 font-display text-lg font-bold sm:mt-4 sm:text-xl">{profile.name || "Usuário"}</h2>
+        <h2 className="relative mt-3 font-display text-lg font-bold sm:mt-4 sm:text-xl">
+          {profile.name || "Usuário"}
+        </h2>
         <p className="relative mt-0.5 text-sm text-muted-foreground">{profile.email}</p>
         <button
           type="button"
@@ -88,7 +105,9 @@ function ProfilePage() {
             Acesso aprovado
           </span>
           {isAdmin && (
-            <span className="rounded-full border border-tie/30 bg-tie/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-tie">Admin</span>
+            <span className="rounded-full border border-tie/30 bg-tie/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-tie">
+              Admin
+            </span>
           )}
         </div>
       </div>
@@ -104,7 +123,10 @@ function ProfilePage() {
       </div>
 
       {isAdmin && (
-        <Link to="/admin" className="glass flex items-center gap-3 rounded-[1.5rem] p-4 transition-colors hover:bg-accent/40">
+        <Link
+          to="/admin"
+          className="glass flex items-center gap-3 rounded-[1.5rem] p-4 transition-colors hover:bg-accent/40"
+        >
           <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-tie/30 bg-tie/10 text-tie">
             <ShieldCheck className="h-5 w-5" />
           </div>

@@ -11,12 +11,14 @@ import {
 } from "./bacbo-engine";
 
 const seq = (s: string) => s.split("") as Outcome[];
-const rounds = (s: string): Round[] =>
-  seq(s).map((outcome) => ({ p: [1, 1], b: [1, 1], outcome }));
+const rounds = (s: string): Round[] => seq(s).map((outcome) => ({ p: [1, 1], b: [1, 1], outcome }));
 
 describe("bac bo patterns", () => {
   it("Surf: a run of 3+ follows the trend", () => {
-    expect(matchPatterns(seq("BPPP"))[0]).toMatchObject({ pattern: "Surf de tendência", side: "player" });
+    expect(matchPatterns(seq("BPPP"))[0]).toMatchObject({
+      pattern: "Surf de tendência",
+      side: "player",
+    });
   });
 
   it("Xadrez 1-1-1: four alternating singles breaks to the opposite side", () => {
@@ -35,7 +37,10 @@ describe("bac bo patterns", () => {
   });
 
   it("ties are skipped when reading runs", () => {
-    expect(matchPatterns(seq("BPTPTP"))[0]).toMatchObject({ pattern: "Surf de tendência", side: "player" });
+    expect(matchPatterns(seq("BPTPTP"))[0]).toMatchObject({
+      pattern: "Surf de tendência",
+      side: "player",
+    });
   });
 
   it("no signal below the minimum confidence", () => {
@@ -63,7 +68,16 @@ describe("signal resolution (entry + 2 gales, tie covered)", () => {
 describe("stats", () => {
   it("accuracy, streak and gale counts", () => {
     const s = computeStats(["green_g0", "green_g1", "red", "green_g2"]);
-    expect(s).toMatchObject({ total: 4, greens: 3, accuracy: 75, streak: 2, g0: 1, g1: 1, g2: 1, reds: 1 });
+    expect(s).toMatchObject({
+      total: 4,
+      greens: 3,
+      accuracy: 75,
+      streak: 2,
+      g0: 1,
+      g1: 1,
+      g2: 1,
+      reds: 1,
+    });
   });
   it("distribution sums to 100 and tie stays between 5 and 15", () => {
     const d = distribution(rounds("PPPPPPPPPPTTTTTTTTTT"));

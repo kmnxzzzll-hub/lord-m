@@ -51,11 +51,17 @@ export function useAvatarUrl(value: string | null | undefined) {
 export async function uploadAvatar(userId: string, file: File, previous: string | null) {
   if (!file.type.startsWith("image/")) throw new Error("Escolha um arquivo de imagem.");
   if (file.size > MAX_AVATAR_BYTES) throw new Error("A foto deve ter no máximo 5 MB.");
-  const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+  const ext =
+    (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
   const path = `${userId}/${Date.now()}.${ext}`;
-  const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file, { contentType: file.type, upsert: false });
+  const { error: upErr } = await supabase.storage
+    .from(BUCKET)
+    .upload(path, file, { contentType: file.type, upsert: false });
   if (upErr) throw new Error("Não foi possível enviar a foto.");
-  const { error: dbErr } = await supabase.from("profiles").update({ avatar_url: path }).eq("id", userId);
+  const { error: dbErr } = await supabase
+    .from("profiles")
+    .update({ avatar_url: path })
+    .eq("id", userId);
   if (dbErr) {
     await supabase.storage.from(BUCKET).remove([path]);
     throw new Error("Não foi possível salvar a foto no perfil.");

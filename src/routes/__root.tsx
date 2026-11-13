@@ -21,9 +21,7 @@ function NotFoundComponent() {
       <div className="max-w-md text-center">
         <h1 className="text-7xl font-bold text-foreground">404</h1>
         <h2 className="mt-4 text-xl font-semibold text-foreground">Página não encontrada</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Esta página não existe ou foi movida.
-        </p>
+        <p className="mt-2 text-sm text-muted-foreground">Esta página não existe ou foi movida.</p>
         <div className="mt-6">
           <Link
             to="/"
@@ -85,9 +83,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { name: "theme-color", content: "#0b0c10" },
       { title: "Bac Bo Live — Robô de Sinais" },
-      { name: "description", content: "Robô de sinais para Bac Bo Live: o sinal de Jogador ou Casa assim que é gerado." },
+      {
+        name: "description",
+        content: "Robô de sinais para Bac Bo Live: o sinal de Jogador ou Casa assim que é gerado.",
+      },
       { property: "og:title", content: "Bac Bo Live — Robô de Sinais" },
-      { property: "og:description", content: "Leitura de padrões Xadrez, Surf, Parzinho, 3-1-3 e Rampa com proteção de empate." },
+      {
+        property: "og:description",
+        content: "Leitura de padrões Xadrez, Surf, Parzinho, 3-1-3 e Rampa com proteção de empate.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -133,7 +137,9 @@ function RootComponent() {
     const { data } = supabase.auth.onAuthStateChange((event) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       router.invalidate();
-      if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
+      // Photo links don't depend on the session change; refetching them only makes pictures flicker.
+      if (event !== "SIGNED_OUT")
+        queryClient.invalidateQueries({ predicate: (q) => q.queryKey[0] !== "avatar-url" });
     });
     return () => data.subscription.unsubscribe();
   }, [router, queryClient]);

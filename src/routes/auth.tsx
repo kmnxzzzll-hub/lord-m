@@ -7,17 +7,26 @@ import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import loginCover from "@/assets/login-cover.png.asset.json";
-import { getAccountStatus, isNotice, signOutEverywhere, type AccountNotice } from "@/lib/auth-helpers";
+import {
+  getAccountStatus,
+  isNotice,
+  signOutEverywhere,
+  type AccountNotice,
+} from "@/lib/auth-helpers";
 import { cn } from "@/lib/utils";
 
 type Search = { status?: AccountNotice };
 
 export const Route = createFileRoute("/auth")({
-  validateSearch: (s: Record<string, unknown>): Search => (isNotice(s["status"]) ? { status: s["status"] } : {}),
+  validateSearch: (s: Record<string, unknown>): Search =>
+    isNotice(s["status"]) ? { status: s["status"] } : {},
   head: () => ({
     meta: [
       { title: "Entrar — Bac Bo Live" },
-      { name: "description", content: "Acesse sua conta do robô de sinais Bac Bo Live ou crie um cadastro." },
+      {
+        name: "description",
+        content: "Acesse sua conta do robô de sinais Bac Bo Live ou crie um cadastro.",
+      },
       { property: "og:title", content: "Entrar — Bac Bo Live" },
       { property: "og:description", content: "Acesse o robô de sinais Bac Bo Live." },
       { property: "og:type", content: "website" },
@@ -80,7 +89,11 @@ function AuthPage() {
           password: parsed.data.password,
         });
         if (error) {
-          setError(error.message.toLowerCase().includes("invalid") ? "E-mail ou senha incorretos." : "Não foi possível entrar. Tente novamente.");
+          setError(
+            error.message.toLowerCase().includes("invalid")
+              ? "E-mail ou senha incorretos."
+              : "Não foi possível entrar. Tente novamente.",
+          );
           return;
         }
         await enter(data.user.id);
@@ -98,8 +111,8 @@ function AuthPage() {
               ? "Este e-mail já está cadastrado."
               : m.includes("not allowed") || m.includes("invalid")
                 ? "Use um e-mail válido que possa receber mensagens."
-                : m.includes("password")
-                  ? "Escolha uma senha mais forte."
+                : m.includes("password") || m.includes("weak")
+                  ? "Escolha uma senha mais forte (essa é fraca ou já apareceu em vazamentos)."
                   : "Não foi possível criar a conta. Tente novamente.",
           );
           return;
@@ -114,7 +127,10 @@ function AuthPage() {
           await enter(data.user.id, true);
           return;
         }
-        const signIn = await supabase.auth.signInWithPassword({ email: parsed.data.email, password: parsed.data.password });
+        const signIn = await supabase.auth.signInWithPassword({
+          email: parsed.data.email,
+          password: parsed.data.password,
+        });
         if (signIn.data.user) await enter(signIn.data.user.id, true);
         else setNotice("created");
       }
@@ -125,7 +141,9 @@ function AuthPage() {
 
   async function onGoogle() {
     setError(null);
-    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin,
+    });
     if (result.error) {
       setError("Não foi possível entrar com o Google.");
       return;
@@ -154,14 +172,31 @@ function AuthPage() {
       <div className="relative -mt-16 flex w-full flex-1 flex-col px-6 pb-6 sm:-mt-4 sm:px-6 sm:pb-10 lg:mt-0 lg:max-w-md lg:py-10">
         <AnimatePresence mode="wait">
           {notice ? (
-            <NoticeCard key="notice" notice={notice} onBack={() => { setNotice(null); setMode("login"); navigate({ to: "/auth", search: {}, replace: true }); }} />
+            <NoticeCard
+              key="notice"
+              notice={notice}
+              onBack={() => {
+                setNotice(null);
+                setMode("login");
+                navigate({ to: "/auth", search: {}, replace: true });
+              }}
+            />
           ) : (
-            <motion.div key={mode} className="mx-auto w-full max-w-[360px] sm:max-w-none" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }}>
+            <motion.div
+              key={mode}
+              className="mx-auto w-full max-w-[360px] sm:max-w-none"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3 }}
+            >
               <h1 className="text-center font-display text-2xl font-bold tracking-tight sm:text-3xl">
                 {mode === "login" ? "Bem-vindo de volta" : "Criar conta"}
               </h1>
               <p className="mt-1 text-center text-sm text-muted-foreground">
-                {mode === "login" ? "Entre para acessar seus robôs" : "Seu acesso é liberado após aprovação do admin"}
+                {mode === "login"
+                  ? "Entre para acessar seus robôs"
+                  : "Seu acesso é liberado após aprovação do admin"}
               </p>
 
               <form onSubmit={onSubmit} className="mt-4 space-y-2.5 sm:mt-7 sm:space-y-3.5">
@@ -199,7 +234,12 @@ function AuthPage() {
 
                 <AnimatePresence>
                   {error && (
-                    <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="text-center text-sm text-destructive">
+                    <motion.p
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="text-center text-sm text-destructive"
+                    >
                       {error}
                     </motion.p>
                   )}
@@ -221,7 +261,30 @@ function AuthPage() {
                 onClick={onGoogle}
                 className="google-btn mt-3 flex h-12 w-full items-center justify-center gap-[10px] rounded-full px-3 text-sm font-medium shadow-[0_10px_30px_-12px_rgba(0,0,0,0.9)] sm:mt-3.5 sm:h-14"
               >
-                <svg aria-hidden="true" width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.080.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z"/><path fill="#FBBC05" d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09c.95-2.85 3.6-4.96 6.73-4.96z"/></svg>
+                <svg
+                  aria-hidden="true"
+                  width="18"
+                  height="18"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    fill="#4285F4"
+                    d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.080.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09c.95-2.85 3.6-4.96 6.73-4.96z"
+                  />
+                </svg>
                 Continuar com o Google
               </motion.button>
 
@@ -241,7 +304,9 @@ function AuthPage() {
             </motion.div>
           )}
         </AnimatePresence>
-        <p className="mt-auto pt-5 text-center text-[11px] text-muted-foreground/70 sm:pt-8">Jogue com responsabilidade · Proibido para menores de 18 anos</p>
+        <p className="mt-auto pt-5 text-center text-[11px] text-muted-foreground/70 sm:pt-8">
+          Jogue com responsabilidade · Proibido para menores de 18 anos
+        </p>
       </div>
     </div>
   );
@@ -256,7 +321,10 @@ function Field({ icon, children }: { icon: ReactNode; children: ReactNode }) {
   );
 }
 
-const NOTICES: Record<AccountNotice, { icon: typeof CheckCircle2; tone: string; title: string; body: string }> = {
+const NOTICES: Record<
+  AccountNotice,
+  { icon: typeof CheckCircle2; tone: string; title: string; body: string }
+> = {
   created: {
     icon: CheckCircle2,
     tone: "text-success border-success/30 bg-success/10",
@@ -298,13 +366,21 @@ function NoticeCard({ notice, onBack }: { notice: AccountNotice; onBack: () => v
         initial={{ scale: 0, rotate: -30 }}
         animate={{ scale: 1, rotate: 0 }}
         transition={{ delay: 0.15, type: "spring", stiffness: 260, damping: 14 }}
-        className={cn("mx-auto flex h-14 w-14 items-center justify-center rounded-full border sm:h-16 sm:w-16", n.tone)}
+        className={cn(
+          "mx-auto flex h-14 w-14 items-center justify-center rounded-full border sm:h-16 sm:w-16",
+          n.tone,
+        )}
       >
         <Icon className="h-7 w-7 sm:h-8 sm:w-8" />
       </motion.div>
-      <h2 className="mt-4 font-display text-xl font-bold tracking-tight sm:mt-5 sm:text-2xl">{n.title}</h2>
+      <h2 className="mt-4 font-display text-xl font-bold tracking-tight sm:mt-5 sm:text-2xl">
+        {n.title}
+      </h2>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{n.body}</p>
-      <button onClick={onBack} className="mt-4 h-11 w-full rounded-full border border-border bg-secondary text-sm font-semibold transition-colors hover:bg-accent sm:mt-6 sm:h-12">
+      <button
+        onClick={onBack}
+        className="mt-4 h-11 w-full rounded-full border border-border bg-secondary text-sm font-semibold transition-colors hover:bg-accent sm:mt-6 sm:h-12"
+      >
         Voltar para o login
       </button>
     </motion.div>

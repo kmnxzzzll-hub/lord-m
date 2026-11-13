@@ -1,9 +1,24 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { settingsQuery, type RobotSettings } from "@/lib/queries";
-import { mergeSignals, robotView, signalsBetween, type RobotView, type ScheduleConfig, type SessionSignal } from "@/lib/robot-schedule";
+import {
+  mergeSignals,
+  robotView,
+  signalsBetween,
+  type RobotView,
+  type ScheduleConfig,
+  type SessionSignal,
+} from "@/lib/robot-schedule";
 import { loadHistory, saveHistory } from "@/lib/session-history";
 
 interface RobotState extends RobotView {
@@ -82,7 +97,12 @@ export function RobotProvider({
         ...(on ? { maintenance: false } : {}),
         updated_at: new Date().toISOString(),
       };
-      const { data, error } = await supabase.from("robot_settings").update(patch).eq("id", 1).select("*").single();
+      const { data, error } = await supabase
+        .from("robot_settings")
+        .update(patch)
+        .eq("id", 1)
+        .select("*")
+        .single();
       if (error) throw error;
       return data;
     },
@@ -99,7 +119,16 @@ export function RobotProvider({
   }, [isAdmin, mutation, running]);
 
   const value = useMemo<RobotState>(
-    () => ({ ...view, running, maintenance, analysisMs, isAdmin, sessionSignals, toggling: mutation.isPending, toggle }),
+    () => ({
+      ...view,
+      running,
+      maintenance,
+      analysisMs,
+      isAdmin,
+      sessionSignals,
+      toggling: mutation.isPending,
+      toggle,
+    }),
     [view, running, maintenance, analysisMs, isAdmin, sessionSignals, mutation.isPending, toggle],
   );
 

@@ -27,3 +27,24 @@ export const allProfilesQuery = queryOptions({
     return data;
   },
 });
+
+export type MyAccount = { profile: Profile | null; isAdmin: boolean };
+
+/**
+ * The signed-in user's profile and admin flag. Cached so switching tabs is instant;
+ * it refreshes in the background so a blocked account is sent out within a minute.
+ */
+export const myAccountQuery = (userId: string) =>
+  queryOptions({
+    queryKey: ["me", userId],
+    queryFn: async (): Promise<MyAccount> => {
+      const [profileRes, roleRes] = await Promise.all([
+        supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
+        supabase.rpc("has_role", { _user_id: userId, _role: "admin" }),
+      ]);
+      if (profileRes.error) throw profileRes.error;
+      return { profile: profileRes.data, isAdmin: !!roleRes.data };
+    },
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });

@@ -1,29 +1,65 @@
-import { createFileRoute, Outlet, redirect, useLocation } from "@tanstack/react-router";
+import { useEffect } from "react";
+import {
+  createFileRoute,
+  Outlet,
+  redirect,
+  useLocation,
+  useNavigate,
+} from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { supabase } from "@/integrations/supabase/client";
 import { BottomNav } from "@/components/bacbo/BottomNav";
 import { RobotProvider } from "@/lib/robot-context";
 import { avatarUrlQuery } from "@/lib/avatar";
+import { myAccountQuery } from "@/lib/queries";
+import type { AccountNotice } from "@/lib/auth-helpers";
 
 export const Route = createFileRoute("/_authenticated/_approved")({
   beforeLoad: async ({ context }) => {
-    const { data: profile } = await supabase.from("profiles").select("*").eq("id", context.user.id).maybeSingle();
+    // Cached after the first load, so moving between tabs doesn't wait on the network.
+    const { profile, isAdmin } = await context.queryClient.ensureQueryData(
+      myAccountQuery(context.user.id),
+    );
     if (!profile || profile.status !== "approved") {
+      context.queryClient.removeQueries({ queryKey: myAccountQuery(context.user.id).queryKey });
       // /auth signs the session out when it receives a status notice.
-      throw redirect({ to: "/auth", search: { status: profile && profile.status !== "approved" ? profile.status : "pending" } });
+      throw redirect({ to: "/auth", search: { status: noticeFor(profile?.status) } });
     }
-    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: context.user.id, _role: "admin" });
     // Warm the profile photo so it appears instantly on the Perfil page.
-    if (profile.avatar_url) await context.queryClient.ensureQueryData(avatarUrlQuery(profile.avatar_url)).catch(() => null);
-    return { profile, isAdmin: !!isAdmin };
+    if (profile.avatar_url) {
+      await context.queryClient
+        .ensureQueryData(avatarUrlQuery(profile.avatar_url))
+        .catch(() => null);
+    }
+    return { profile, isAdmin };
   },
   component: ApprovedLayout,
 });
 
+function noticeFor(status: string | undefined): AccountNotice {
+  return status === "rejected" || status === "blocked" ? status : "pending";
+}
+
 function ApprovedLayout() {
-  const { profile, isAdmin, user } = Route.useRouteContext();
+  const { profile: initial, isAdmin: initialAdmin, user } = Route.useRouteContext();
+  const { data } = useQuery(myAccountQuery(user.id));
+  const navigate = useNavigate();
   const { pathname } = useLocation();
+  const profile = data?.profile ?? initial;
+  const isAdmin = data?.isAdmin ?? initialAdmin;
   const sessionStart = user.last_sign_in_at ? Date.parse(user.last_sign_in_at) : 0;
+
+  // Background refresh: send the user out as soon as the admin blocks or removes the account.
+  useEffect(() => {
+    if (data && data.profile?.status !== "approved") {
+      void navigate({
+        to: "/auth",
+        search: { status: noticeFor(data.profile?.status) },
+        replace: true,
+      });
+    }
+  }, [data, navigate]);
+
   return (
     <RobotProvider userId={profile.id} sessionStart={sessionStart} isAdmin={isAdmin}>
       <div className="relative z-10 mx-auto min-h-screen max-w-md px-3.5 pb-28 pt-3 sm:px-4 sm:pt-4 md:max-w-2xl md:pb-32 lg:max-w-5xl lg:px-6">

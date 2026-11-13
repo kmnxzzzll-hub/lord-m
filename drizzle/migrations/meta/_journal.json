@@ -15,6 +15,13 @@
       "when": 1794572674464,
       "tag": "0001_reserved_admin_email",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794601226178,
+      "tag": "0002_tighten_function_permissions",
+      "breakpoints": true
     }
   ]
 }

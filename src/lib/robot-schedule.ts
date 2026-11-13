@@ -3,7 +3,14 @@
  * every client derives the same cycles and signals from those values, so all users see the
  * same signal at the same time without any server job.
  */
-import { detectSignal, rollRound, seedHistory, type Round, type Side, type Signal } from "./bacbo-engine";
+import {
+  detectSignal,
+  rollRound,
+  seedHistory,
+  type Round,
+  type Side,
+  type Signal,
+} from "./bacbo-engine";
 
 export const SIGNAL_MS = 20_000;
 const BASE_ROUNDS = 40;
@@ -70,7 +77,15 @@ export function cycleData(cfg: ScheduleConfig, cycle: number) {
 const cycleLength = (cfg: ScheduleConfig) => cfg.analysisMs + (cfg.signalMs ?? SIGNAL_MS);
 
 export function robotView(cfg: ScheduleConfig | null, now: number): RobotView {
-  if (!cfg) return { phase: "off", cycle: -1, phaseStart: now, phaseEnd: Infinity, signal: null, history: [] };
+  if (!cfg)
+    return {
+      phase: "off",
+      cycle: -1,
+      phaseStart: now,
+      phaseEnd: Infinity,
+      signal: null,
+      history: [],
+    };
   const len = cycleLength(cfg);
   const elapsed = Math.max(0, now - cfg.startedAt);
   const cycle = Math.floor(elapsed / len);
@@ -81,7 +96,14 @@ export function robotView(cfg: ScheduleConfig | null, now: number): RobotView {
     return { phase: "signal", cycle, phaseStart: signalAt, phaseEnd: start + len, signal, history };
   }
   // No strong pattern this cycle: keep analyzing until the next cycle starts.
-  return { phase: "analyzing", cycle, phaseStart: start, phaseEnd: signal ? signalAt : start + len, signal: null, history };
+  return {
+    phase: "analyzing",
+    cycle,
+    phaseStart: start,
+    phaseEnd: signal ? signalAt : start + len,
+    signal: null,
+    history,
+  };
 }
 
 export interface SessionSignal {
@@ -91,7 +113,12 @@ export interface SessionSignal {
 }
 
 /** Signals whose reveal time falls in [from, to], newest first (at most `limit`). */
-export function signalsBetween(cfg: ScheduleConfig, from: number, to: number, limit = 60): SessionSignal[] {
+export function signalsBetween(
+  cfg: ScheduleConfig,
+  from: number,
+  to: number,
+  limit = 60,
+): SessionSignal[] {
   const len = cycleLength(cfg);
   const out: SessionSignal[] = [];
   const last = Math.floor(Math.max(0, to - cfg.startedAt) / len);
@@ -106,7 +133,11 @@ export function signalsBetween(cfg: ScheduleConfig, from: number, to: number, li
 }
 
 /** Merges new signals into the session list: deduped by key, newest first. */
-export function mergeSignals(existing: SessionSignal[], incoming: SessionSignal[], limit = 60): SessionSignal[] {
+export function mergeSignals(
+  existing: SessionSignal[],
+  incoming: SessionSignal[],
+  limit = 60,
+): SessionSignal[] {
   const map = new Map<string, SessionSignal>();
   for (const s of [...existing, ...incoming]) map.set(s.key, s);
   return [...map.values()].sort((a, b) => b.at - a.at).slice(0, limit);
