@@ -131,7 +131,7 @@ export function Cube3D({ size = 96, className }: { size?: number; className?: st
         });
       });
 
-      const geometry = new RoundedBoxGeometry(1, 1, 1, 8, 0.15);
+      const geometry = new RoundedBoxGeometry(1, 1, 1, 10, 0.12);
       const die = new THREE.Mesh(geometry, materials);
       die.rotation.set(-0.45, 0.6, 0);
       scene.add(die);

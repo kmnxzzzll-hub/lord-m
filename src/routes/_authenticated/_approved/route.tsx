@@ -26,7 +26,7 @@ function ApprovedLayout() {
   const sessionStart = user.last_sign_in_at ? Date.parse(user.last_sign_in_at) : 0;
   return (
     <RobotProvider userId={profile.id} sessionStart={sessionStart} isAdmin={isAdmin}>
-      <div className="relative z-10 mx-auto min-h-screen max-w-md px-4 pb-32 pt-4">
+      <div className="relative z-10 mx-auto min-h-screen max-w-md px-3.5 pb-28 pt-3 sm:px-4 sm:pt-4 md:max-w-2xl md:pb-32 lg:max-w-5xl lg:px-6">
         <motion.div
           key={pathname}
           initial={{ opacity: 0, y: 12 }}

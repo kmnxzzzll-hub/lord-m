@@ -54,14 +54,14 @@ function AuthPage() {
     });
   }, [search.status, queryClient]);
 
-  async function enter(userId: string) {
+  async function enter(userId: string, justCreated = false) {
     const status = await getAccountStatus(userId);
     if (status === "approved") {
       navigate({ to: "/robos", replace: true });
       return;
     }
     await signOutEverywhere(queryClient);
-    setNotice(status ?? "pending");
+    setNotice(justCreated && (!status || status === "pending") ? "created" : (status ?? "pending"));
   }
 
   async function onSubmit(e: FormEvent) {
@@ -80,7 +80,7 @@ function AuthPage() {
           password: parsed.data.password,
         });
         if (error) {
-          setError("E-mail ou senha incorretos.");
+          setError(error.message.toLowerCase().includes("invalid") ? "E-mail ou senha incorretos." : "Não foi possível entrar. Tente novamente.");
           return;
         }
         await enter(data.user.id);
@@ -108,9 +108,15 @@ function AuthPage() {
           setError("Este e-mail já está cadastrado.");
           return;
         }
-        if (data.session) await signOutEverywhere(queryClient);
-        setNotice("created");
         setForm({ name: "", email: "", password: "" });
+        // Sign-up confirms instantly: enter right away (approved accounts) or show the waiting notice.
+        if (data.session && data.user) {
+          await enter(data.user.id, true);
+          return;
+        }
+        const signIn = await supabase.auth.signInWithPassword({ email: parsed.data.email, password: parsed.data.password });
+        if (signIn.data.user) await enter(signIn.data.user.id, true);
+        else setNotice("created");
       }
     } finally {
       setLoading(false);
@@ -130,8 +136,8 @@ function AuthPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-md flex-col">
-      <div className="relative h-[38vh] min-h-[260px] overflow-hidden">
+    <div className="mx-auto flex min-h-screen max-w-md flex-col md:max-w-lg lg:max-w-6xl lg:flex-row lg:items-center lg:gap-12 lg:px-10">
+      <div className="relative h-[28vh] min-h-[190px] overflow-hidden sm:h-[34vh] sm:min-h-[240px] lg:h-[80vh] lg:w-1/2 lg:rounded-[2rem]">
         <motion.img
           src={loginCover.url}
           alt="Bac Bo Live"
@@ -142,23 +148,23 @@ function AuthPage() {
           animate={{ scale: 1 }}
           transition={{ duration: 1.6, ease: [0.22, 1, 0.36, 1] }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent via-60% to-background" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent via-60% to-background lg:hidden" />
       </div>
 
-      <div className="relative -mt-6 flex flex-1 flex-col px-6 pb-10">
+      <div className="relative -mt-6 flex flex-1 flex-col px-5 pb-8 sm:px-6 sm:pb-10 lg:mt-0 lg:max-w-md lg:py-10">
         <AnimatePresence mode="wait">
           {notice ? (
             <NoticeCard key="notice" notice={notice} onBack={() => { setNotice(null); setMode("login"); navigate({ to: "/auth", search: {}, replace: true }); }} />
           ) : (
             <motion.div key={mode} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }}>
-              <h1 className="text-center font-display text-3xl font-bold tracking-tight">
+              <h1 className="text-center font-display text-2xl font-bold tracking-tight sm:text-3xl">
                 {mode === "login" ? "Bem-vindo de volta" : "Criar conta"}
               </h1>
               <p className="mt-1.5 text-center text-sm text-muted-foreground">
                 {mode === "login" ? "Entre para acessar seus robôs" : "Seu acesso é liberado após aprovação do admin"}
               </p>
 
-              <form onSubmit={onSubmit} className="mt-7 space-y-3.5">
+              <form onSubmit={onSubmit} className="mt-5 space-y-3 sm:mt-7 sm:space-y-3.5">
                 {mode === "signup" && (
                   <Field icon={<UserRound className="h-[18px] w-[18px]" />}>
                     <input
@@ -202,7 +208,7 @@ function AuthPage() {
                 <motion.button
                   whileTap={{ scale: 0.98 }}
                   disabled={loading}
-                  className="mt-2 flex h-14 w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-banker to-banker-glow font-semibold text-primary-foreground shadow-[0_18px_40px_-18px_var(--banker)] disabled:opacity-70"
+                  className="mt-2 flex h-12 w-full sm:h-14 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-banker to-banker-glow font-semibold text-primary-foreground shadow-[0_18px_40px_-18px_var(--banker)] disabled:opacity-70"
                 >
                   {loading && <Loader2 className="h-4 w-4 animate-spin" />}
                   {mode === "login" ? "Entrar com E-mail" : "Criar conta"}
@@ -213,13 +219,13 @@ function AuthPage() {
                 whileTap={{ scale: 0.98 }}
                 type="button"
                 onClick={onGoogle}
-                className="google-btn mt-3.5 flex h-14 w-full items-center justify-center gap-[10px] rounded-full px-3 text-sm font-medium shadow-[0_10px_30px_-12px_rgba(0,0,0,0.9)]"
+                className="google-btn mt-3 flex h-12 w-full sm:mt-3.5 sm:h-14 items-center justify-center gap-[10px] rounded-full px-3 text-sm font-medium shadow-[0_10px_30px_-12px_rgba(0,0,0,0.9)]"
               >
                 <svg aria-hidden="true" width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.080.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z"/><path fill="#FBBC05" d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09c.95-2.85 3.6-4.96 6.73-4.96z"/></svg>
                 Continuar com o Google
               </motion.button>
 
-              <p className="mt-8 text-center text-sm text-muted-foreground">
+              <p className="mt-6 text-center text-sm text-muted-foreground sm:mt-8">
                 {mode === "login" ? "Não tem uma conta? " : "Já tem uma conta? "}
                 <button
                   type="button"
@@ -243,7 +249,7 @@ function AuthPage() {
 
 function Field({ icon, children }: { icon: ReactNode; children: ReactNode }) {
   return (
-    <label className="flex h-14 items-center gap-3 rounded-2xl border border-border bg-card/70 px-4 text-muted-foreground transition-colors focus-within:border-foreground/25 focus-within:bg-card">
+    <label className="flex h-12 items-center sm:h-14 gap-3 rounded-2xl border border-border bg-card/70 px-4 text-muted-foreground transition-colors focus-within:border-foreground/25 focus-within:bg-card">
       {icon}
       {children}
     </label>
@@ -286,7 +292,7 @@ function NoticeCard({ notice, onBack }: { notice: AccountNotice; onBack: () => v
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.96 }}
       transition={{ type: "spring", stiffness: 240, damping: 22 }}
-      className="glass mt-4 rounded-[1.75rem] p-7 text-center"
+      className="glass mt-4 rounded-[1.75rem] p-6 text-center sm:p-7"
     >
       <motion.div
         initial={{ scale: 0, rotate: -30 }}

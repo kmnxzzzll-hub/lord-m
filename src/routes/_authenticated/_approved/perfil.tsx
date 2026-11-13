@@ -55,13 +55,13 @@ function ProfilePage() {
   }
 
   return (
-    <div className="space-y-4 pt-3">
-      <h1 className="font-display text-2xl font-bold tracking-tight">Perfil</h1>
+    <div className="mx-auto space-y-3 pt-2 sm:space-y-4 sm:pt-3 lg:max-w-3xl">
+      <h1 className="font-display text-xl font-bold tracking-tight sm:text-2xl">Perfil</h1>
 
-      <div className="glass relative overflow-hidden rounded-[1.75rem] p-6 text-center">
-        <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-r from-player/30 via-tie/20 to-banker/30" />
-        <div className="relative mx-auto mt-6 h-24 w-24">
-          <Avatar value={avatar} name={profile.name} className="h-24 w-24 border-4 border-background shadow-xl" textClass="text-3xl" />
+      <div className="glass relative overflow-hidden rounded-[1.75rem] p-5 text-center sm:p-6">
+        <div className="absolute inset-x-0 top-0 h-20 sm:h-24 bg-gradient-to-r from-player/30 via-tie/20 to-banker/30" />
+        <div className="relative mx-auto mt-4 h-20 w-20 sm:mt-6 sm:h-24 sm:w-24">
+          <Avatar value={avatar} name={profile.name} className="h-20 w-20 border-4 sm:h-24 sm:w-24 border-background shadow-xl" textClass="text-3xl" />
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
@@ -73,7 +73,7 @@ function ProfilePage() {
           </button>
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPick} />
         </div>
-        <h2 className="relative mt-4 font-display text-xl font-bold">{profile.name || "Usuário"}</h2>
+        <h2 className="relative mt-3 font-display text-lg font-bold sm:mt-4 sm:text-xl">{profile.name || "Usuário"}</h2>
         <p className="relative mt-0.5 text-sm text-muted-foreground">{profile.email}</p>
         <button
           type="button"
@@ -110,7 +110,7 @@ function ProfilePage() {
           </div>
           <div className="flex-1">
             <p className="font-semibold">Painel do Administrador</p>
-            <p className="text-xs text-muted-foreground">Aprovar cadastros e calibrar o robô</p>
+            <p className="text-xs text-muted-foreground">Cadastros, robô e senha</p>
           </div>
           <ChevronRight className="h-5 w-5 text-muted-foreground" />
         </Link>
@@ -119,7 +119,7 @@ function ProfilePage() {
       <motion.button
         whileTap={{ scale: 0.98 }}
         onClick={logout}
-        className="flex h-14 w-full items-center justify-center gap-2 rounded-full border border-destructive/30 bg-destructive/10 font-semibold text-destructive"
+        className="flex h-12 w-full items-center justify-center gap-2 rounded-full border border-destructive/30 sm:h-14 bg-destructive/10 font-semibold text-destructive"
       >
         <LogOut className="h-4 w-4" /> Sair da conta
       </motion.button>
@@ -130,9 +130,9 @@ function ProfilePage() {
 function Row({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
   return (
     <div className="flex items-center gap-3 px-4 py-3.5">
-      <span className="text-muted-foreground">{icon}</span>
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="ml-auto truncate text-sm font-medium">{value}</span>
+      <span className="shrink-0 text-muted-foreground">{icon}</span>
+      <span className="shrink-0 text-sm text-muted-foreground">{label}</span>
+      <span className="ml-auto min-w-0 truncate text-sm font-medium">{value}</span>
     </div>
   );
 }

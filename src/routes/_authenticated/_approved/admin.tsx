@@ -1,13 +1,25 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, Ban, Check, Power, RotateCcw, ShieldCheck, Users, Wrench, X } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { ArrowLeft, Ban, Check, KeyRound, Loader2, Power, RotateCcw, ShieldCheck, Trash2, Users, Wrench, X } from "lucide-react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { deleteUserAccount } from "@/lib/admin.functions";
 import { Avatar } from "@/components/bacbo/Avatar";
 import { allProfilesQuery, settingsQuery, type Profile } from "@/lib/queries";
 import { useRobot } from "@/lib/robot-context";
@@ -33,7 +45,7 @@ export const Route = createFileRoute("/_authenticated/_approved/admin")({
   component: AdminPage,
 });
 
-type Tab = "pending" | "users" | "robot";
+type Tab = "pending" | "users" | "robot" | "account";
 
 function AdminPage() {
   const { profile: me } = Route.useRouteContext();
@@ -68,32 +80,56 @@ function AdminPage() {
     onSettled: () => queryClient.invalidateQueries({ queryKey: allProfilesQuery.queryKey }),
   });
 
+  const deleteFn = useServerFn(deleteUserAccount);
+  const [toDelete, setToDelete] = useState<Profile | null>(null);
+  const remove = useMutation({
+    mutationFn: (id: string) => deleteFn({ data: { userId: id } }),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: allProfilesQuery.queryKey });
+      const prev = queryClient.getQueryData(allProfilesQuery.queryKey);
+      queryClient.setQueryData(allProfilesQuery.queryKey, (old: Profile[] = []) => old.filter((p) => p.id !== id));
+      return { prev };
+    },
+    onError: (e, _v, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(allProfilesQuery.queryKey, ctx.prev);
+      toast.error(e instanceof Error ? e.message : "Não foi possível excluir o cadastro.");
+    },
+    onSuccess: () => toast.success("Cadastro excluído"),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: allProfilesQuery.queryKey }),
+  });
+
   const pending = profiles.filter((p) => p.status === "pending");
   const others = profiles.filter((p) => p.status !== "pending");
 
   return (
-    <div className="space-y-4 pt-2">
+    <div className="mx-auto space-y-3 pt-2 sm:space-y-4 lg:max-w-3xl">
       <header className="flex items-center gap-3">
-        <Link to="/perfil" className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card">
+        <Link to="/perfil" aria-label="Voltar" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-card">
           <ArrowLeft className="h-4 w-4" />
         </Link>
-        <div>
-          <h1 className="font-display text-xl font-bold tracking-tight">Painel do Administrador</h1>
-          <p className="text-xs text-muted-foreground">Acessos e calibragem do robô</p>
+        <div className="min-w-0">
+          <h1 className="truncate font-display text-lg font-bold tracking-tight sm:text-xl">Painel do Administrador</h1>
+          <p className="text-xs text-muted-foreground">Acessos, robô e senha</p>
         </div>
       </header>
 
-      <div className="glass grid grid-cols-3 gap-1 rounded-2xl p-1">
+      <div className="glass grid grid-cols-4 gap-1 rounded-2xl p-1">
         {(
           [
-            ["pending", `Pendentes${pending.length ? ` (${pending.length})` : ""}`],
+            ["pending", "Pendentes"],
             ["users", "Usuários"],
             ["robot", "Robô"],
+            ["account", "Senha"],
           ] as const
         ).map(([k, label]) => (
-          <button key={k} onClick={() => setTab(k)} className="relative rounded-xl py-2.5 text-sm font-semibold">
+          <button key={k} onClick={() => setTab(k)} className="relative rounded-xl px-1 py-2 text-xs font-semibold sm:py-2.5 sm:text-sm">
             {tab === k && <motion.span layoutId="admin-tab" className="absolute inset-0 rounded-xl bg-secondary ring-1 ring-border" />}
-            <span className={cn("relative", tab === k ? "text-foreground" : "text-muted-foreground")}>{label}</span>
+            <span className={cn("relative block truncate", tab === k ? "text-foreground" : "text-muted-foreground")}>{label}</span>
+            {k === "pending" && pending.length > 0 && (
+              <span className="absolute -right-0.5 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-tie px-1 text-[10px] font-bold text-background">
+                {pending.length}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -110,6 +146,9 @@ function AdminPage() {
                   <IconBtn tone="danger" label="Recusar" onClick={() => setStatus.mutate({ id: p.id, status: "rejected" })}>
                     <X className="h-4 w-4" />
                   </IconBtn>
+                  <IconBtn tone="muted" label="Excluir" onClick={() => setToDelete(p)}>
+                    <Trash2 className="h-4 w-4" />
+                  </IconBtn>
                 </UserRow>
               ))}
             </List>
@@ -120,22 +159,53 @@ function AdminPage() {
                 <UserRow key={p.id} p={p} badge={p.status}>
                   {p.id === me.id ? (
                     <span className="text-[11px] text-muted-foreground">Você</span>
-                  ) : p.status === "approved" ? (
-                    <IconBtn tone="danger" label="Bloquear" onClick={() => setStatus.mutate({ id: p.id, status: "blocked" })}>
-                      <Ban className="h-4 w-4" />
-                    </IconBtn>
                   ) : (
-                    <IconBtn tone="success" label="Reativar" onClick={() => setStatus.mutate({ id: p.id, status: "approved" })}>
-                      <RotateCcw className="h-4 w-4" />
-                    </IconBtn>
+                    <>
+                      {p.status === "approved" ? (
+                        <IconBtn tone="danger" label="Bloquear" onClick={() => setStatus.mutate({ id: p.id, status: "blocked" })}>
+                          <Ban className="h-4 w-4" />
+                        </IconBtn>
+                      ) : (
+                        <IconBtn tone="success" label="Reativar" onClick={() => setStatus.mutate({ id: p.id, status: "approved" })}>
+                          <RotateCcw className="h-4 w-4" />
+                        </IconBtn>
+                      )}
+                      <IconBtn tone="muted" label="Excluir" onClick={() => setToDelete(p)}>
+                        <Trash2 className="h-4 w-4" />
+                      </IconBtn>
+                    </>
                   )}
                 </UserRow>
               ))}
             </List>
           )}
           {tab === "robot" && <RobotControls />}
+          {tab === "account" && <PasswordForm />}
         </motion.div>
       </AnimatePresence>
+
+      <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
+        <AlertDialogContent className="max-w-[calc(100vw-2rem)] rounded-2xl sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir cadastro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A conta de {toDelete?.name || toDelete?.email} será apagada de vez. A pessoa precisará se cadastrar de novo para pedir acesso.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (toDelete) remove.mutate(toDelete.id);
+                setToDelete(null);
+              }}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -162,21 +232,21 @@ const BADGE_LABEL: Record<Status, string> = { approved: "Ativo", pending: "Pende
 
 function UserRow({ p, badge, children }: { p: Profile; badge?: Status; children: ReactNode }) {
   return (
-    <motion.li layout className="glass flex items-center gap-3 rounded-2xl p-3">
-      <Avatar value={p.avatar_url} name={p.name} className="h-10 w-10 shrink-0" textClass="text-sm" />
+    <motion.li layout className="glass flex items-center gap-2.5 rounded-2xl p-2.5 sm:gap-3 sm:p-3">
+      <Avatar value={p.avatar_url} name={p.name} className="h-9 w-9 shrink-0 sm:h-10 sm:w-10" textClass="text-sm" />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <p className="truncate font-semibold">{p.name || "Sem nome"}</p>
-          {badge && <span className={cn("rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase", BADGE[badge])}>{BADGE_LABEL[badge]}</span>}
+          <p className="truncate text-sm font-semibold sm:text-base">{p.name || "Sem nome"}</p>
+          {badge && <span className={cn("shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase", BADGE[badge])}>{BADGE_LABEL[badge]}</span>}
         </div>
         <p className="truncate text-xs text-muted-foreground">{p.email}</p>
       </div>
-      <div className="flex items-center gap-1.5">{children}</div>
+      <div className="flex shrink-0 items-center gap-1.5">{children}</div>
     </motion.li>
   );
 }
 
-function IconBtn({ tone, label, onClick, children }: { tone: "success" | "danger"; label: string; onClick: () => void; children: ReactNode }) {
+function IconBtn({ tone, label, onClick, children }: { tone: "success" | "danger" | "muted"; label: string; onClick: () => void; children: ReactNode }) {
   return (
     <motion.button
       whileTap={{ scale: 0.9 }}
@@ -184,12 +254,14 @@ function IconBtn({ tone, label, onClick, children }: { tone: "success" | "danger
       aria-label={label}
       title={label}
       className={cn(
-        "flex h-10 items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold",
-        tone === "success" ? "border-success/30 bg-success/10 text-success" : "border-destructive/30 bg-destructive/10 text-destructive",
+        "flex h-9 items-center gap-1.5 rounded-xl border px-2.5 text-xs font-semibold sm:h-10 sm:px-3",
+        tone === "success" && "border-success/30 bg-success/10 text-success",
+        tone === "danger" && "border-destructive/30 bg-destructive/10 text-destructive",
+        tone === "muted" && "border-border bg-secondary text-muted-foreground hover:text-destructive",
       )}
     >
       {children}
-      <span>{label}</span>
+      <span className="hidden sm:inline">{label}</span>
     </motion.button>
   );
 }
@@ -229,7 +301,7 @@ function RobotControls() {
 
   return (
     <div className="space-y-3">
-      <div className="glass flex items-center gap-3 rounded-2xl p-5">
+      <div className="glass flex items-center gap-3 rounded-2xl p-4 sm:p-5">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-success/30 bg-success/10 text-success">
           <Power className="h-5 w-5" />
         </div>
@@ -240,13 +312,13 @@ function RobotControls() {
         <Switch checked={robot.running} disabled={robot.toggling} onCheckedChange={() => robot.toggle()} />
       </div>
 
-      <div className="glass rounded-2xl p-5">
+      <div className="glass rounded-2xl p-4 sm:p-5">
         <div className="flex items-center justify-between">
           <div>
             <p className="font-semibold">Força mínima do padrão</p>
             <p className="text-xs text-muted-foreground">Só confirma entrada quando o padrão atinge este nível</p>
           </div>
-          <span className="font-display text-2xl font-extrabold text-success">{minConfidence}%</span>
+          <span className="font-display text-xl font-extrabold sm:text-2xl text-success">{minConfidence}%</span>
         </div>
         <Slider className="mt-4" min={50} max={90} step={1} value={[minConfidence]} onValueChange={([v]) => setMinConfidence(v ?? 70)} />
         <p className="mt-3 text-[11px] text-muted-foreground">
@@ -254,13 +326,13 @@ function RobotControls() {
         </p>
       </div>
 
-      <div className="glass rounded-2xl p-5">
+      <div className="glass rounded-2xl p-4 sm:p-5">
         <div className="flex items-center justify-between">
           <div>
             <p className="font-semibold">Tempo da análise</p>
             <p className="text-xs text-muted-foreground">Duração da análise antes de gerar o sinal</p>
           </div>
-          <span className="font-display text-2xl font-extrabold">{seconds}s</span>
+          <span className="font-display text-xl font-extrabold sm:text-2xl">{seconds}s</span>
         </div>
         <Slider className="mt-4" min={5} max={60} step={1} value={[seconds]} onValueChange={([v]) => setSeconds(v ?? 15)} />
       </div>
@@ -274,7 +346,7 @@ function RobotControls() {
         <ShieldCheck className="h-4 w-4" /> Salvar calibragem
       </motion.button>
 
-      <div className="glass flex items-center gap-3 rounded-2xl p-5">
+      <div className="glass flex items-center gap-3 rounded-2xl p-4 sm:p-5">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-tie/30 bg-tie/10 text-tie">
           <Wrench className="h-5 w-5" />
         </div>
@@ -291,5 +363,69 @@ function RobotControls() {
         />
       </div>
     </div>
+  );
+}
+
+function PasswordForm() {
+  const [form, setForm] = useState({ current: "", next: "", confirm: "" });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (form.next.length < 6) return setError("A nova senha precisa de pelo menos 6 caracteres.");
+    if (form.next.length > 72) return setError("A nova senha é muito longa.");
+    if (form.next !== form.confirm) return setError("As senhas novas não são iguais.");
+    if (form.next === form.current) return setError("A nova senha precisa ser diferente da atual.");
+    setSaving(true);
+    try {
+      // The backend requires and checks the current password, so a wrong one is rejected.
+      const { error } = await supabase.auth.updateUser({ password: form.next, current_password: form.current });
+      if (error) {
+        const m = error.message.toLowerCase();
+        return setError(m.includes("current") || m.includes("reauth") || m.includes("invalid") ? "Senha atual incorreta." : "Não foi possível alterar a senha. Tente outra.");
+      }
+      setForm({ current: "", next: "", confirm: "" });
+      toast.success("Senha alterada");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const field = (key: keyof typeof form, placeholder: string, autoComplete: string) => (
+    <input
+      type="password"
+      placeholder={placeholder}
+      autoComplete={autoComplete}
+      value={form[key]}
+      onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+      className="h-12 w-full rounded-xl border border-border bg-card/70 px-4 text-[15px] outline-none placeholder:text-muted-foreground focus:border-foreground/25"
+    />
+  );
+
+  return (
+    <form onSubmit={onSubmit} className="glass space-y-3 rounded-2xl p-4 sm:p-5">
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-tie/30 bg-tie/10 text-tie">
+          <KeyRound className="h-5 w-5" />
+        </div>
+        <div className="min-w-0">
+          <p className="font-semibold">Alterar minha senha</p>
+          <p className="text-xs text-muted-foreground">Informe a senha atual e escolha a nova</p>
+        </div>
+      </div>
+      {field("current", "Senha atual", "current-password")}
+      {field("next", "Nova senha", "new-password")}
+      {field("confirm", "Repita a nova senha", "new-password")}
+      {error && <p className="text-center text-sm text-destructive">{error}</p>}
+      <motion.button
+        whileTap={{ scale: 0.98 }}
+        disabled={saving}
+        className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-success/90 to-success font-semibold text-background disabled:opacity-60"
+      >
+        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} Salvar nova senha
+      </motion.button>
+    </form>
   );
 }

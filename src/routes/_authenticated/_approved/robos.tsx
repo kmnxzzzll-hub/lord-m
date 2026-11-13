@@ -10,6 +10,7 @@ import { distribution } from "@/lib/bacbo-engine";
 import { useRobot } from "@/lib/robot-context";
 import { useNow } from "@/lib/use-now";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export const Route = createFileRoute("/_authenticated/_approved/robos")({
   head: () => ({
@@ -39,10 +40,11 @@ function RobotsPage() {
   const dist = phase === "signal" ? distribution(robot.history, robot.signal) : null;
 
   return (
-    <div className="space-y-5">
-      <header className="pt-2">
+    <div className="space-y-4 sm:space-y-5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-8 lg:gap-y-5 lg:space-y-0">
+      <div className="space-y-4 sm:space-y-5">
+      <header className="pt-1 sm:pt-2">
         <Logo />
-        <div className="mt-3 flex items-center justify-center gap-3 text-xs text-muted-foreground">
+        <div className="mt-2.5 flex items-center justify-center gap-3 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/60 px-3 py-1">
             <span className={cn("h-1.5 w-1.5 rounded-full", on ? "bg-success" : "bg-muted-foreground")} />
             {on ? "Online" : "Standby"}
@@ -57,7 +59,7 @@ function RobotsPage() {
           whileTap={{ scale: 0.97 }}
           disabled={robot.toggling}
           className={cn(
-            "relative flex h-14 w-full items-center justify-center gap-2.5 overflow-hidden rounded-full font-display text-base font-bold tracking-wide transition-colors disabled:opacity-60",
+            "relative flex h-12 w-full items-center justify-center gap-2.5 overflow-hidden rounded-full font-display text-[15px] font-bold sm:h-14 sm:text-base tracking-wide transition-colors disabled:opacity-60",
             robot.running
               ? "border border-border bg-secondary text-foreground"
               : "bg-gradient-to-r from-success/90 to-success text-background shadow-[0_18px_40px_-18px_var(--success)]",
@@ -76,7 +78,9 @@ function RobotsPage() {
       )}
 
       <LiquidBoard dist={dist} winner={phase === "signal" ? (robot.signal?.side ?? null) : null} />
+      </div>
 
+      <div className="lg:pt-2">
       <AnimatePresence mode="wait">
         {robot.maintenance ? (
           <Panel key="maint">
@@ -89,10 +93,10 @@ function RobotsPage() {
           </Panel>
         ) : phase === "off" ? (
           <Panel key="off">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full border border-border bg-background/60 text-muted-foreground">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full border border-border bg-background/60 sm:h-16 sm:w-16 text-muted-foreground">
               <Moon className="h-7 w-7" />
             </div>
-            <h2 className="mt-4 font-display text-2xl font-extrabold">STANDBY</h2>
+            <h2 className="mt-3 font-display text-xl font-extrabold sm:mt-4 sm:text-2xl">STANDBY</h2>
             <p className="mt-2 text-sm text-muted-foreground">
               {isAdmin ? "Toque em Ligar Robô para iniciar os sinais para todos." : "Aguarde o administrador iniciar o robô."}
             </p>
@@ -105,8 +109,9 @@ function RobotsPage() {
           )
         )}
       </AnimatePresence>
+      </div>
 
-      <p className="px-4 text-center text-[11px] leading-relaxed text-muted-foreground/70">
+      <p className="px-3 text-center lg:col-span-2 text-[11px] leading-relaxed text-muted-foreground/70">
         As rodadas analisadas são geradas pelo robô a partir das probabilidades reais dos dados — não há leitura direta da mesa.
         Sinais não garantem ganhos. Jogue com responsabilidade · +18.
       </p>
@@ -121,7 +126,7 @@ function Panel({ children }: { children: ReactNode }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.3 }}
-      className="glass flex flex-col items-center rounded-[1.75rem] px-6 py-8 text-center"
+      className="glass flex flex-col items-center rounded-[1.75rem] px-5 py-6 text-center sm:px-6 sm:py-8"
     >
       {children}
     </motion.div>
@@ -134,14 +139,15 @@ function Analyzing() {
   const total = phaseEnd - phaseStart;
   const elapsed = Math.min(total, Math.max(0, now - phaseStart));
   const left = Math.max(0, Math.ceil((total - elapsed) / 1000));
+  const isMobile = useIsMobile();
 
   return (
     <Panel>
-      <Cube3D size={100} />
-      <h2 className="mt-3 font-display text-xl font-extrabold tracking-[0.14em]">
+      <Cube3D size={isMobile ? 76 : 100} />
+      <h2 className="mt-2 font-display text-base font-extrabold tracking-[0.12em] sm:mt-3 sm:text-xl sm:tracking-[0.14em]">
         <span className="text-success">SISTEMA ONLINE</span> <span className="text-foreground">ANALISANDO</span>
       </h2>
-      <div className="mt-6 w-full">
+      <div className="mt-4 w-full sm:mt-6">
         <div className="mb-1.5 flex justify-end text-[11px] font-semibold text-muted-foreground">
           <span className="tabular-nums">{left}s</span>
         </div>

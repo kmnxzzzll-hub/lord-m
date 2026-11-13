@@ -65,7 +65,7 @@ function Percent({ value }: { value: number | null }) {
       key={value ?? "off"}
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      className="font-display text-4xl font-extrabold tracking-tight text-foreground drop-shadow-[0_2px_8px_rgba(0,0,0,0.45)]"
+      className="font-display text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl drop-shadow-[0_2px_8px_rgba(0,0,0,0.45)]"
     >
       {value === null ? "--" : `${value}%`}
     </motion.span>
@@ -86,9 +86,9 @@ function SideCard({ tone, label, value, highlight }: { tone: "player" | "banker"
     >
       <Liquid tone={tone} level={active ? value! * 1.25 : 8} active={active} />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-foreground/10 via-transparent to-transparent" />
-      <div className={cn("relative flex h-full flex-col justify-end pb-4", tone === "player" ? "items-start pl-4" : "items-end pr-4")}>
+      <div className={cn("relative flex h-full flex-col justify-end pb-3 sm:pb-4", tone === "player" ? "items-start pl-3 sm:pl-4" : "items-end pr-3 sm:pr-4")}>
         <Percent value={value} />
-        <span className="mt-0.5 text-[11px] font-semibold uppercase tracking-[0.25em] text-foreground/80">{label}</span>
+        <span className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-foreground/80 sm:text-[11px] sm:tracking-[0.25em]">{label}</span>
       </div>
     </motion.div>
   );
@@ -103,23 +103,23 @@ export function LiquidBoard({
 }) {
   const active = dist !== null;
   return (
-    <div className="relative h-44">
+    <div className="relative h-36 sm:h-44 lg:h-52">
       <div className="absolute inset-y-0 left-0 w-[47%]">
         <SideCard tone="player" label="Jogador" value={dist?.player ?? null} highlight={winner === "player"} />
       </div>
       <div className="absolute inset-y-0 right-0 w-[47%]">
         <SideCard tone="banker" label="Casa" value={dist?.banker ?? null} highlight={winner === "banker"} />
       </div>
-      <div className="absolute left-1/2 top-1/2 z-10 h-32 w-32 -translate-x-1/2 -translate-y-1/2">
+      <div className="absolute left-1/2 top-1/2 z-10 h-24 w-24 -translate-x-1/2 sm:h-32 sm:w-32 lg:h-36 lg:w-36 -translate-y-1/2">
         <div className="absolute -inset-2 rounded-full bg-tie/15 blur-xl" />
         <div className="relative h-full w-full overflow-hidden rounded-full border-2 border-tie/70 bg-background/80 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.8)] backdrop-blur-xl">
           <Liquid tone="tie" level={active ? dist!.tie * 2.2 : 6} active={active} />
           <div className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-b from-foreground/15 via-transparent to-transparent" />
           <div className="relative flex h-full flex-col items-center justify-center">
-            <span className="font-display text-3xl font-extrabold text-foreground drop-shadow">
+            <span className="font-display text-2xl font-extrabold text-foreground drop-shadow sm:text-3xl">
               {active ? `${dist!.tie}%` : "--"}
             </span>
-            <span className="text-[10px] font-semibold uppercase tracking-[0.25em] text-tie-glow">Empate</span>
+            <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-tie-glow sm:text-[10px] sm:tracking-[0.25em]">Empate</span>
           </div>
         </div>
       </div>

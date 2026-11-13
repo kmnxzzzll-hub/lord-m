@@ -8,6 +8,13 @@
       "when": 1794570131255,
       "tag": "0000_bacbo_initial_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794572674464,
+      "tag": "0001_reserved_admin_email",
+      "breakpoints": true
     }
   ]
 }
