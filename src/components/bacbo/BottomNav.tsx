@@ -1,4 +1,5 @@
-import { Link, useLocation } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { Link, useLocation, useRouter } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { Bot, History, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -11,6 +12,16 @@ const items = [
 
 export function BottomNav() {
   const { pathname } = useLocation();
+  const router = useRouter();
+
+  // Load every tab's page in the background right after sign-in, so even the first tap is instant.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      for (const { to } of items) void router.preloadRoute({ to }).catch(() => {});
+    }, 300);
+    return () => clearTimeout(t);
+  }, [router]);
+
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40">
       <div className="mx-auto max-w-md px-3.5 pb-safe sm:px-4">

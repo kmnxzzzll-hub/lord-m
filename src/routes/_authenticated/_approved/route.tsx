@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { warmDieWhenIdle } from "@/lib/die-engine";
 import {
   createFileRoute,
   Outlet,
@@ -25,11 +26,9 @@ export const Route = createFileRoute("/_authenticated/_approved")({
       // /auth signs the session out when it receives a status notice.
       throw redirect({ to: "/auth", search: { status: noticeFor(profile?.status) } });
     }
-    // Warm the profile photo so it appears instantly on the Perfil page.
+    // Warm the profile photo in the background; never hold the tab switch for it.
     if (profile.avatar_url) {
-      await context.queryClient
-        .ensureQueryData(avatarUrlQuery(profile.avatar_url))
-        .catch(() => null);
+      void context.queryClient.prefetchQuery(avatarUrlQuery(profile.avatar_url));
     }
     return { profile, isAdmin };
   },
@@ -49,6 +48,9 @@ function ApprovedLayout() {
   const isAdmin = data?.isAdmin ?? initialAdmin;
   const sessionStart = user.last_sign_in_at ? Date.parse(user.last_sign_in_at) : 0;
 
+  // Build the 3D die once, in idle time, so "Analisando" shows it immediately.
+  useEffect(() => warmDieWhenIdle(), []);
+
   // Background refresh: send the user out as soon as the admin blocks or removes the account.
   useEffect(() => {
     if (data && data.profile?.status !== "approved") {
@@ -65,9 +67,9 @@ function ApprovedLayout() {
       <div className="relative z-10 mx-auto min-h-screen max-w-md px-3.5 pb-28 pt-3 sm:px-4 sm:pt-4 md:max-w-2xl md:pb-32 lg:max-w-5xl lg:px-6">
         <motion.div
           key={pathname}
-          initial={{ opacity: 0, y: 12 }}
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
         >
           <Outlet />
         </motion.div>

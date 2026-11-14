@@ -6,7 +6,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
-import loginCover from "@/assets/login-cover.png.asset.json";
+import loginCover from "@/assets/login-cover.jpg";
 import {
   getAccountStatus,
   isNotice,
@@ -157,7 +157,7 @@ function AuthPage() {
     <div className="flex min-h-screen w-full flex-col sm:mx-auto sm:max-w-md md:max-w-lg lg:max-w-6xl lg:flex-row lg:items-center lg:gap-12 lg:px-10">
       <div className="relative h-[37vh] min-h-[250px] w-full overflow-hidden sm:h-[34vh] sm:min-h-[240px] lg:h-[80vh] lg:w-1/2 lg:rounded-[2rem]">
         <motion.img
-          src={loginCover.url}
+          src={loginCover}
           alt="Bac Bo Live"
           width={1254}
           height={1254}
