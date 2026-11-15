@@ -1,6 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import { getLiveTable } from "@/lib/live-table.functions";
 
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type RobotSettings = Database["public"]["Tables"]["robot_settings"]["Row"];
@@ -48,3 +49,15 @@ export const myAccountQuery = (userId: string) =>
     staleTime: 30_000,
     refetchInterval: 60_000,
   });
+
+/** Real rounds from the live table, plus the difference between this device's clock and the server's. */
+export const liveTableQuery = queryOptions({
+  queryKey: ["live-table"],
+  queryFn: async () => {
+    const sent = Date.now();
+    const data = await getLiveTable();
+    const clockOffset = data.serverNow - Math.round((sent + Date.now()) / 2);
+    return { ...data, clockOffset };
+  },
+  retry: 1,
+});

@@ -1,108 +1,134 @@
 /**
- * Shared robot schedule. The admin switches the robot on (robot_settings.running + started_at);
- * every client derives the same cycles and signals from those values, so all users see the
- * same signal at the same time without any server job.
+ * Shared robot timeline driven by the real Bac Bo Live table. The admin switches the robot on
+ * (robot_settings.running + started_at); after every real round that settles, each client runs
+ * the pattern engine on the same stored rounds, so all users see the same signal at the same time.
  */
-import {
-  detectSignal,
-  rollRound,
-  seedHistory,
-  type Round,
-  type Side,
-  type Signal,
-} from "./bacbo-engine";
+import { detectSignal, type Round, type Side, type Signal } from "./bacbo-engine";
+import type { LiveRound } from "./live-table";
 
-export const SIGNAL_MS = 20_000;
-const BASE_ROUNDS = 40;
-const MAX_EXTRA_ROUNDS = 60;
+/** Typical time between two results at the Bac Bo Live table. */
+export const ROUND_MS = 31_000;
+/** A signal stays up until the next round arrives, but never longer than this. */
+export const SIGNAL_HOLD_MS = 45_000;
+/** No new round for this long: the table is treated as quiet and the robot waits. */
+export const STALE_MS = 120_000;
+const HISTORY = 60;
+
+export const MIN_ANALYSIS_S = 2;
+export const MAX_ANALYSIS_S = 10;
+/** Analysis must end while bets for the next round are still open. */
+export const clampAnalysisSeconds = (s: number) =>
+  Math.min(MAX_ANALYSIS_S, Math.max(MIN_ANALYSIS_S, Math.round(s)));
 
 export interface ScheduleConfig {
   startedAt: number;
   analysisMs: number;
   minConfidence: number;
-  signalMs?: number;
 }
 
 export type RobotPhase = "off" | "analyzing" | "signal";
 
 export interface RobotView {
   phase: RobotPhase;
-  cycle: number;
+  /** Id of the real round the current analysis/signal follows (or a waiting key). */
+  key: string;
   phaseStart: number;
   phaseEnd: number;
+  /** Next moment the view changes on its own, without a new round. */
+  wakeAt: number;
+  /** True while there is no fresh round to analyze or no pattern for the next one. */
+  waiting: boolean;
   signal: Signal | null;
+  /** Real rounds the current reading is based on, oldest first. */
   history: Round[];
+  lastRound: LiveRound | null;
 }
 
-export function mulberry32(seed: number) {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
+const signalCache = new Map<string, Signal | null>();
+
+/** Signal for the round that follows rounds[index], from the real rounds up to it. */
+export function signalAfter(
+  rounds: LiveRound[],
+  index: number,
+  minConfidence: number,
+): Signal | null {
+  const round = rounds[index];
+  if (!round) return null;
+  const key = `${round.id}:${minConfidence}`;
+  if (signalCache.has(key)) return signalCache.get(key)!;
+  const history = rounds.slice(Math.max(0, index + 1 - HISTORY), index + 1);
+  const signal = detectSignal(history, minConfidence);
+  if (signalCache.size > 500) signalCache.clear();
+  signalCache.set(key, signal);
+  return signal;
 }
 
-function seedFor(startedAt: number, cycle: number) {
-  let h = 2166136261;
-  for (const ch of `${startedAt}:${cycle}`) {
-    h ^= ch.charCodeAt(0);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
-
-const cache = new Map<string, { history: Round[]; signal: Signal | null }>();
-
-/** Simulated rounds and resulting signal for one cycle. Deterministic for the same config. */
-export function cycleData(cfg: ScheduleConfig, cycle: number) {
-  const key = `${cfg.startedAt}:${cfg.minConfidence}:${cycle}`;
-  const hit = cache.get(key);
-  if (hit) return hit;
-  const rng = mulberry32(seedFor(cfg.startedAt, cycle));
-  const history = seedHistory(BASE_ROUNDS, rng);
-  let signal: Signal | null = null;
-  for (let i = 0; i <= MAX_EXTRA_ROUNDS; i++) {
-    signal = detectSignal(history, cfg.minConfidence);
-    if (signal) break;
-    if (i < MAX_EXTRA_ROUNDS) history.push(rollRound(rng));
-  }
-  const data = { history, signal };
-  if (cache.size > 200) cache.clear();
-  cache.set(key, data);
-  return data;
-}
-
-const cycleLength = (cfg: ScheduleConfig) => cfg.analysisMs + (cfg.signalMs ?? SIGNAL_MS);
-
-export function robotView(cfg: ScheduleConfig | null, now: number): RobotView {
-  if (!cfg)
+export function robotView(
+  cfg: ScheduleConfig | null,
+  rounds: LiveRound[],
+  now: number,
+): RobotView {
+  const lastRound = rounds[rounds.length - 1] ?? null;
+  const base = { history: rounds as Round[], lastRound, signal: null };
+  if (!cfg) {
     return {
+      ...base,
       phase: "off",
-      cycle: -1,
+      key: "off",
       phaseStart: now,
       phaseEnd: Infinity,
-      signal: null,
-      history: [],
+      wakeAt: Infinity,
+      waiting: false,
     };
-  const len = cycleLength(cfg);
-  const elapsed = Math.max(0, now - cfg.startedAt);
-  const cycle = Math.floor(elapsed / len);
-  const start = cfg.startedAt + cycle * len;
-  const { history, signal } = cycleData(cfg, cycle);
-  const signalAt = start + cfg.analysisMs;
-  if (signal && now >= signalAt) {
-    return { phase: "signal", cycle, phaseStart: signalAt, phaseEnd: start + len, signal, history };
   }
-  // No strong pattern this cycle: keep analyzing until the next cycle starts.
+
+  const waitFor = (from: number, key: string): RobotView => ({
+    ...base,
+    phase: "analyzing",
+    key,
+    phaseStart: from,
+    phaseEnd: Math.max(from + 1_000, from + ROUND_MS),
+    wakeAt: Infinity,
+    waiting: true,
+  });
+
+  // Nothing settled at the table since the robot was switched on, or the table went quiet.
+  if (!lastRound || lastRound.settledAt < cfg.startedAt) {
+    return waitFor(Math.max(cfg.startedAt, lastRound?.settledAt ?? 0), `wait:${cfg.startedAt}`);
+  }
+  if (now - lastRound.settledAt > STALE_MS) return waitFor(lastRound.settledAt, `stale:${lastRound.id}`);
+
+  const i = rounds.length - 1;
+  const signal = signalAfter(rounds, i, cfg.minConfidence);
+  const settled = lastRound.settledAt;
+  const revealAt = settled + cfg.analysisMs;
+  const history = rounds.slice(Math.max(0, i + 1 - HISTORY));
+
+  if (signal && now >= revealAt) {
+    if (now >= settled + SIGNAL_HOLD_MS) return waitFor(settled, `late:${lastRound.id}`);
+    return {
+      phase: "signal",
+      key: lastRound.id,
+      phaseStart: revealAt,
+      phaseEnd: Math.max(revealAt + 1_000, settled + ROUND_MS),
+      wakeAt: settled + SIGNAL_HOLD_MS,
+      waiting: false,
+      signal,
+      history,
+      lastRound,
+    };
+  }
   return {
     phase: "analyzing",
-    cycle,
-    phaseStart: start,
-    phaseEnd: signal ? signalAt : start + len,
+    key: lastRound.id,
+    phaseStart: settled,
+    phaseEnd: signal ? revealAt : settled + ROUND_MS,
+    wakeAt: signal ? revealAt : settled + STALE_MS,
+    // No pattern for the next round: keep reading the table until the next result.
+    waiting: !signal && now >= revealAt,
     signal: null,
     history,
+    lastRound,
   };
 }
 
@@ -115,19 +141,20 @@ export interface SessionSignal {
 /** Signals whose reveal time falls in [from, to], newest first (at most `limit`). */
 export function signalsBetween(
   cfg: ScheduleConfig,
+  rounds: LiveRound[],
   from: number,
   to: number,
   limit = 60,
 ): SessionSignal[] {
-  const len = cycleLength(cfg);
   const out: SessionSignal[] = [];
-  const last = Math.floor(Math.max(0, to - cfg.startedAt) / len);
-  for (let c = last; c >= 0 && out.length < limit; c--) {
-    const at = cfg.startedAt + c * len + cfg.analysisMs;
+  for (let i = rounds.length - 1; i >= 0 && out.length < limit; i--) {
+    const r = rounds[i]!;
+    if (r.settledAt < cfg.startedAt) break;
+    const at = r.settledAt + cfg.analysisMs;
     if (at > to) continue;
     if (at < from) break;
-    const { signal } = cycleData(cfg, c);
-    if (signal) out.push({ key: `${cfg.startedAt}:${c}`, side: signal.side, at });
+    const signal = signalAfter(rounds, i, cfg.minConfidence);
+    if (signal) out.push({ key: r.id, side: signal.side, at });
   }
   return out;
 }

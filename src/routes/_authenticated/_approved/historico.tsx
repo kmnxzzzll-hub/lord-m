@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { History } from "lucide-react";
-import { Ball } from "@/components/bacbo/Ball";
+import { Ball, outcomeKind, outcomeLabel } from "@/components/bacbo/Ball";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useRobot } from "@/lib/robot-context";
 
@@ -11,10 +11,10 @@ export const Route = createFileRoute("/_authenticated/_approved/historico")({
       { title: "Histórico — Bac Bo Live" },
       {
         name: "description",
-        content: "As cores dos últimos sinais gerados pelo robô Bac Bo Live nesta sessão.",
+        content: "Os sinais desta sessão e as últimas rodadas reais da mesa Bac Bo Live.",
       },
       { property: "og:title", content: "Histórico — Bac Bo Live" },
-      { property: "og:description", content: "Últimos sinais gerados nesta sessão." },
+      { property: "og:description", content: "Sinais da sessão e rodadas reais da mesa." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -23,7 +23,8 @@ export const Route = createFileRoute("/_authenticated/_approved/historico")({
 });
 
 function HistoryPage() {
-  const { sessionSignals } = useRobot();
+  const { sessionSignals, rounds } = useRobot();
+  const recent = rounds.slice(-36).reverse();
   const isMobile = useIsMobile();
 
   return (
@@ -73,6 +74,42 @@ function HistoryPage() {
           </ul>
         </div>
       )}
+
+      <section className="mt-5 sm:mt-6">
+        <h2 className="pb-2.5 font-display text-base font-bold sm:text-lg">Rodadas da mesa</h2>
+        {recent.length === 0 ? (
+          <div className="glass rounded-[1.75rem] p-6 text-center text-sm text-muted-foreground">
+            Buscando as rodadas da mesa ao vivo…
+          </div>
+        ) : (
+          <ul className="glass divide-y divide-border/60 rounded-[1.75rem] px-4 sm:px-5">
+            {recent.map((r) => (
+              <li key={r.id} className="flex items-center gap-3 py-2.5">
+                <Ball
+                  kind={outcomeKind(r.outcome)}
+                  label={outcomeLabel(r.outcome)}
+                  size={isMobile ? 26 : 30}
+                />
+                <span className="flex-1 text-sm tabular-nums">
+                  <span className="text-player-glow">
+                    {r.p[0]}+{r.p[1]} = {r.pScore}
+                  </span>
+                  <span className="px-2 text-muted-foreground">×</span>
+                  <span className="text-banker-glow">
+                    {r.b[0]}+{r.b[1]} = {r.bScore}
+                  </span>
+                  {r.outcome === "T" && r.multiplier ? (
+                    <span className="pl-2 text-xs font-semibold text-tie-glow">{r.multiplier}x</span>
+                  ) : null}
+                </span>
+                <time className="text-xs tabular-nums text-muted-foreground">
+                  {new Date(r.settledAt).toLocaleTimeString("pt-BR")}
+                </time>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }

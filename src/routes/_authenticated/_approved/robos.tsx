@@ -5,6 +5,7 @@ import { Moon, Power, Wrench } from "lucide-react";
 import { Logo } from "@/components/bacbo/Logo";
 import { LiquidBoard } from "@/components/bacbo/LiquidBoard";
 import { Cube3D } from "@/components/bacbo/Cube3D";
+import { LiveTableCard } from "@/components/bacbo/LiveTable";
 import { SignalOrb } from "@/components/bacbo/SignalOrb";
 import { distribution } from "@/lib/bacbo-engine";
 import { useRobot } from "@/lib/robot-context";
@@ -19,7 +20,7 @@ export const Route = createFileRoute("/_authenticated/_approved/robos")({
       {
         name: "description",
         content:
-          "Acompanhe o robô Bac Bo Live e receba o sinal de Jogador ou Casa assim que ele for gerado.",
+          "Acompanhe o robô Bac Bo Live, que lê as rodadas reais da mesa e mostra o sinal de Jogador ou Casa.",
       },
       { property: "og:title", content: "Robôs — Bac Bo Live" },
       { property: "og:description", content: "Sinais de Jogador ou Casa em tempo real." },
@@ -92,6 +93,12 @@ function RobotsPage() {
           dist={dist}
           winner={phase === "signal" ? (robot.signal?.side ?? null) : null}
         />
+
+        <LiveTableCard
+          rounds={robot.rounds}
+          clockOffset={robot.clockOffset}
+          error={robot.tableError}
+        />
       </div>
 
       <div className="lg:pt-2">
@@ -124,11 +131,11 @@ function RobotsPage() {
               </p>
             </Panel>
           ) : phase === "analyzing" ? (
-            <Analyzing key={`analyzing-${robot.cycle}`} />
+            <Analyzing key={`analyzing-${robot.key}`} />
           ) : (
             robot.signal && (
               <SignalOrb
-                key={`signal-${robot.cycle}`}
+                key={`signal-${robot.key}`}
                 side={robot.signal.side}
                 phaseStart={robot.phaseStart}
                 phaseEnd={robot.phaseEnd}
@@ -139,8 +146,8 @@ function RobotsPage() {
       </div>
 
       <p className="px-3 text-center lg:col-span-2 text-[11px] leading-relaxed text-muted-foreground/70">
-        As rodadas analisadas são geradas pelo robô a partir das probabilidades reais dos dados —
-        não há leitura direta da mesa. Sinais não garantem ganhos. Jogue com responsabilidade · +18.
+        As rodadas analisadas vêm da mesa Bac Bo Live ao vivo. Os sinais são leituras de padrões e
+        não garantem ganhos. Jogue com responsabilidade · +18.
       </p>
     </div>
   );
@@ -161,7 +168,7 @@ function Panel({ children }: { children: ReactNode }) {
 }
 
 function Analyzing() {
-  const { phaseStart, phaseEnd } = useRobot();
+  const { phaseStart, phaseEnd, waiting, lastRound } = useRobot();
   const now = useNow(100);
   const total = phaseEnd - phaseStart;
   const elapsed = Math.min(total, Math.max(0, now - phaseStart));
@@ -175,6 +182,13 @@ function Analyzing() {
         <span className="text-success">SISTEMA ONLINE</span>{" "}
         <span className="text-foreground">ANALISANDO</span>
       </h2>
+      <p className="mt-1.5 text-xs text-muted-foreground">
+        {!lastRound
+          ? "Conectando à mesa ao vivo…"
+          : waiting
+            ? "Sem padrão forte agora. Aguardando a próxima rodada da mesa."
+            : "Lendo as últimas rodadas da mesa."}
+      </p>
       <div className="mt-4 w-full sm:mt-6">
         <div className="mb-1.5 flex justify-end text-[11px] font-semibold text-muted-foreground">
           <span className="tabular-nums">{left}s</span>

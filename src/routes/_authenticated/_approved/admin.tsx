@@ -2,6 +2,7 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  Radio,
   ArrowLeft,
   Ban,
   Check,
@@ -36,6 +37,9 @@ import { deleteUserAccount } from "@/lib/admin.functions";
 import { Avatar } from "@/components/bacbo/Avatar";
 import { allProfilesQuery, settingsQuery, type Profile } from "@/lib/queries";
 import { useRobot } from "@/lib/robot-context";
+import { feedErrorMessage } from "@/lib/live-table";
+import { clampAnalysisSeconds, MAX_ANALYSIS_S, MIN_ANALYSIS_S } from "@/lib/robot-schedule";
+import { useNow } from "@/lib/use-now";
 import { cn } from "@/lib/utils";
 
 type Status = Database["public"]["Enums"]["account_status"];
@@ -374,13 +378,13 @@ function RobotControls() {
   const robot = useRobot();
   const { data: settings } = useQuery(settingsQuery);
   const [minConfidence, setMinConfidence] = useState(70);
-  const [seconds, setSeconds] = useState(15);
+  const [seconds, setSeconds] = useState(5);
   const [maintenance, setMaintenance] = useState(false);
 
   useEffect(() => {
     if (!settings) return;
     setMinConfidence(settings.min_confidence);
-    setSeconds(settings.analysis_seconds);
+    setSeconds(clampAnalysisSeconds(settings.analysis_seconds));
     setMaintenance(settings.maintenance);
   }, [settings]);
 
@@ -427,6 +431,8 @@ function RobotControls() {
         />
       </div>
 
+      <FeedStatus />
+
       <div className="glass rounded-2xl p-4 sm:p-5">
         <div className="flex items-center justify-between">
           <div>
@@ -457,18 +463,18 @@ function RobotControls() {
           <div>
             <p className="font-semibold">Tempo da análise</p>
             <p className="text-xs text-muted-foreground">
-              Duração da análise antes de gerar o sinal
+              Segundos depois que a rodada fecha na mesa. Menos tempo = mais tempo para apostar.
             </p>
           </div>
           <span className="font-display text-xl font-extrabold sm:text-2xl">{seconds}s</span>
         </div>
         <Slider
           className="mt-4"
-          min={5}
-          max={60}
+          min={MIN_ANALYSIS_S}
+          max={MAX_ANALYSIS_S}
           step={1}
           value={[seconds]}
-          onValueChange={([v]) => setSeconds(v ?? 15)}
+          onValueChange={([v]) => setSeconds(v ?? 5)}
         />
       </div>
 
@@ -576,5 +582,36 @@ function PasswordForm() {
         Salvar nova senha
       </motion.button>
     </form>
+  );
+}
+
+function FeedStatus() {
+  const { feed, rounds, clockOffset, tableError } = useRobot();
+  const now = useNow(5000) + clockOffset;
+  const last = rounds[rounds.length - 1];
+  const problem = feedErrorMessage(feed?.lastError) ?? (tableError ? feedErrorMessage("x") : null);
+  const fresh = !!last && now - last.settledAt < 90_000;
+  return (
+    <div className="glass flex items-center gap-3 rounded-2xl p-4 sm:p-5">
+      <div
+        className={cn(
+          "flex h-10 w-10 items-center justify-center rounded-xl border",
+          problem
+            ? "border-destructive/30 bg-destructive/10 text-destructive"
+            : "border-success/30 bg-success/10 text-success",
+        )}
+      >
+        <Radio className="h-5 w-5" />
+      </div>
+      <div className="flex-1">
+        <p className="font-semibold">Mesa ao vivo (LynxMetrics)</p>
+        <p className="text-xs text-muted-foreground">
+          {problem ??
+            (last
+              ? `${fresh ? "Recebendo rodadas" : "Mesa parada"} · última às ${new Date(last.settledAt).toLocaleTimeString("pt-BR")}`
+              : "Conectando à mesa…")}
+        </p>
+      </div>
+    </div>
   );
 }

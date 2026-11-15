@@ -14,6 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      live_feed_status: {
+        Row: {
+          id: number
+          last_attempt_at: string
+          last_error: string | null
+          last_success_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          last_attempt_at?: string
+          last_error?: string | null
+          last_success_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          last_attempt_at?: string
+          last_error?: string | null
+          last_success_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      live_rounds: {
+        Row: {
+          banker_dice: number[]
+          banker_score: number
+          id: string
+          multiplier: number | null
+          outcome: string
+          player_dice: number[]
+          player_score: number
+          received_at: string
+          settled_at: string
+          started_at: string | null
+          table_id: string | null
+        }
+        Insert: {
+          banker_dice: number[]
+          banker_score: number
+          id: string
+          multiplier?: number | null
+          outcome: string
+          player_dice: number[]
+          player_score: number
+          received_at?: string
+          settled_at: string
+          started_at?: string | null
+          table_id?: string | null
+        }
+        Update: {
+          banker_dice?: number[]
+          banker_score?: number
+          id?: string
+          multiplier?: number | null
+          outcome?: string
+          player_dice?: number[]
+          player_score?: number
+          received_at?: string
+          settled_at?: string
+          started_at?: string | null
+          table_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -133,6 +199,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_live_feed_sync: {
+        Args: { _min_interval_ms: number }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
